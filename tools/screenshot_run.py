@@ -6,8 +6,11 @@ from the android-emulator-runner step). Installs the debug APK, walks the
 first-run onboarding with its pre-filled defaults, taps "Build my plan",
 then captures each bottom-nav screen at 1080x2160 (2:1, Play-safe).
 
+Diagnostics: every UI dump's visible texts are printed to the log, a launch
+screenshot and the raw dump XML are saved into screenshots/ (uploaded even
+on failure), and a filtered logcat tail is printed before any failure exit.
+
 Usage: python3 tools/screenshot_run.py <path-to-apk>
-Output: screenshots/*.png in the repo root working directory.
 """
 import os
 import re
@@ -34,6 +37,16 @@ def dump():
     return r.stdout or ""
 
 
+def visible_texts(xml):
+    texts = re.findall(r'(?:text|content-desc)="([^"]+)"', xml)
+    seen, out = set(), []
+    for t in texts:
+        if t not in seen:
+            seen.add(t)
+            out.append(t)
+    return out
+
+
 def find(xml, text, min_y=0):
     """Center point of the first node whose text/content-desc contains text."""
     pat = re.compile(
@@ -52,12 +65,12 @@ def tap_text(text, timeout=30, required=True, min_y=0):
         p = find(dump(), text, min_y=min_y)
         if p:
             adb("shell", "input", "tap", str(p[0]), str(p[1]))
-            print(f"tapped '{text}' at {p}")
+            print(f"tapped '{text}' at {p}", flush=True)
             return True
         time.sleep(2)
     if required:
-        raise SystemExit(f"FAIL: UI text not found: {text}")
-    print(f"optional text not found, skipping: {text}")
+        fail(f"UI text not found: {text}")
+    print(f"optional text not found, skipping: {text}", flush=True)
     return False
 
 
@@ -71,37 +84,81 @@ def shot(name):
     r = adb("exec-out", "screencap", "-p", binary=True)
     data = r.stdout or b""
     if len(data) < 10000:
-        raise SystemExit(f"FAIL: screenshot {name} too small ({len(data)} bytes)")
+        fail(f"screenshot {name} too small ({len(data)} bytes)")
     with open(os.path.join(OUT, name), "wb") as f:
         f.write(data)
-    print(f"saved {name} ({len(data)} bytes)")
+    print(f"saved {name} ({len(data)} bytes)", flush=True)
+
+
+def fail(msg):
+    print(f"FAIL: {msg}", flush=True)
+    try:
+        xml = dump()
+        with open(os.path.join(OUT, "diag-dump.xml"), "w") as f:
+            f.write(xml)
+        print("visible texts at failure:", visible_texts(xml)[:40], flush=True)
+        r = adb("exec-out", "screencap", "-p", binary=True)
+        if r.stdout and len(r.stdout) > 1000:
+            with open(os.path.join(OUT, "diag-screen.png"), "wb") as f:
+                f.write(r.stdout)
+        lc = adb("logcat", "-d", "-t", "400")
+        lines = (lc.stdout or "").splitlines()
+        interesting = [
+            ln for ln in lines
+            if any(k in ln for k in ("FATAL", "AndroidRuntime", "flutter",
+                                     "NestKeep", "nestkeep", "Exception"))
+        ]
+        print("--- logcat tail (filtered) ---", flush=True)
+        for ln in interesting[-60:]:
+            print(ln, flush=True)
+    except Exception as e:
+        print("diagnostics failed:", e, flush=True)
+    sys.exit(1)
+
+
+def wait_for_text(text, timeout=90):
+    """Poll the UI dump until text appears; print what IS visible meanwhile."""
+    end = time.time() + timeout
+    while time.time() < end:
+        xml = dump()
+        if find(xml, text):
+            print(f"found '{text}'", flush=True)
+            return xml
+        print("waiting; visible:", visible_texts(xml)[:25], flush=True)
+        time.sleep(10)
+    return None
 
 
 def main():
     apk = sys.argv[1]
-    print("waiting for device...")
+    print("waiting for device...", flush=True)
     adb("wait-for-device")
     # Play phone screenshots must not exceed a 2:1 aspect ratio.
     adb("shell", "wm", "size", "1080x2160")
-    adb("shell", "settings", "put", "global", "window_animation_scale", "0")
-    adb("shell", "settings", "put", "global", "transition_animation_scale", "0")
 
-    print("installing", apk)
+    print("installing", apk, flush=True)
     r = adb("install", "-r", apk)
-    print(r.stdout, r.stderr)
+    print(r.stdout, r.stderr, flush=True)
     if "Success" not in (r.stdout or ""):
-        raise SystemExit("FAIL: APK install did not report Success")
+        fail("APK install did not report Success")
 
-    print("launching app")
+    print("launching app", flush=True)
     r = adb("shell", "am", "start", "-n", f"{PKG}/.MainActivity")
-    print(r.stdout, r.stderr)
-    time.sleep(10)
+    print(r.stdout, r.stderr, flush=True)
 
-    # Onboarding: one scrollable form, defaults pre-filled. Scroll to the
-    # "Build my plan" button and tap it.
-    for _ in range(4):
+    # Wait for the onboarding screen to render (spinner shows first).
+    xml = wait_for_text("Welcome home", timeout=90)
+    if xml is None:
+        fail("onboarding 'Welcome home' never appeared")
+
+    shot("00-onboarding.png")
+
+    # The form is long; the button enters the semantics tree only when
+    # scrolled into view. Scroll gradually until it shows up.
+    for i in range(10):
         if find(dump(), "Build my plan"):
             break
+        print(f"scroll {i + 1}: button not visible yet", flush=True)
         swipe_up()
     tap_text("Build my plan", timeout=20)
     time.sleep(4)
@@ -113,7 +170,7 @@ def main():
     # Bottom nav lives in the bottom ~15% of the 2160px-tall screen.
     nav_min_y = 1800
     if not find(dump(), "Today", min_y=nav_min_y):
-        raise SystemExit("FAIL: main screen with bottom nav never appeared")
+        fail("main screen with bottom nav never appeared")
 
     shot("01-today.png")
     tap_text("Plan", min_y=nav_min_y)
@@ -125,7 +182,7 @@ def main():
     tap_text("Profile", min_y=nav_min_y)
     shot("05-profile.png")
     tap_text("Today", min_y=nav_min_y)
-    print("done:", sorted(os.listdir(OUT)))
+    print("done:", sorted(os.listdir(OUT)), flush=True)
 
 
 if __name__ == "__main__":
