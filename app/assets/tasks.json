@@ -1,0 +1,1611 @@
+{
+ "note": "NestKeep task library. Costs are honest US approximations ('about'), never fake precision. frequencyMonths = how often the job repeats. seasons: spring, summer, fall, winter (empty = any).",
+ "tasks": [
+  {
+   "category": "HVAC",
+   "difficulty": "Easy",
+   "diyCost": 20,
+   "frequencyMonths": 3,
+   "id": "hvac-filter",
+   "ignoreCost": 300,
+   "minutes": 10,
+   "needs": [
+    "Replacement filter in the size printed on the old one"
+   ],
+   "seasons": [],
+   "steps": [
+    "Turn the system off at the thermostat.",
+    "Slide the old filter out and note its size and the airflow arrow direction.",
+    "Slide the new filter in with the arrow pointing toward the furnace.",
+    "Turn the system back on and write the date on the filter frame."
+   ],
+   "title": "Change the HVAC air filter",
+   "why": "A clogged filter makes the system work harder, raises the power bill and shortens the life of the blower motor."
+  },
+  {
+   "category": "HVAC",
+   "difficulty": "Easy",
+   "diyCost": 15,
+   "frequencyMonths": 12,
+   "id": "hvac-condenser",
+   "ignoreCost": 450,
+   "minutes": 30,
+   "needs": [
+    "Garden hose",
+    "Fin comb (optional)"
+   ],
+   "seasons": [
+    "spring"
+   ],
+   "steps": [
+    "Switch the outdoor unit off at the disconnect box.",
+    "Clear leaves and debris from around the unit, keeping 2 feet of space.",
+    "Spray the coils gently from inside out with a garden hose, never a pressure washer.",
+    "Straighten any badly bent fins with a fin comb.",
+    "Restore power and check cool air at a vent."
+   ],
+   "title": "Clean the AC condenser coils",
+   "why": "Dirt and cottonwood fluff on the outdoor coils can cut cooling efficiency by a fifth and overheat the compressor."
+  },
+  {
+   "category": "HVAC",
+   "difficulty": "Pro",
+   "diyCost": 120,
+   "frequencyMonths": 12,
+   "id": "hvac-furnace-service",
+   "ignoreCost": 1200,
+   "minutes": 60,
+   "needs": [
+    "A licensed HVAC technician"
+   ],
+   "seasons": [
+    "fall"
+   ],
+   "steps": [
+    "Call your HVAC company before the first cold snap, when prices and waits are lowest.",
+    "Ask for a combustion check and heat exchanger inspection in writing.",
+    "Keep the service report with your home records."
+   ],
+   "title": "Book the annual furnace service",
+   "why": "A yearly service catches a cracked heat exchanger, which can leak carbon monoxide, before heating season starts."
+  },
+  {
+   "category": "HVAC",
+   "difficulty": "Pro",
+   "diyCost": 110,
+   "frequencyMonths": 12,
+   "id": "hvac-ac-service",
+   "ignoreCost": 1500,
+   "minutes": 60,
+   "needs": [
+    "A licensed HVAC technician"
+   ],
+   "seasons": [
+    "spring"
+   ],
+   "steps": [
+    "Book before the first hot week of the year.",
+    "Ask for refrigerant level, capacitor and drain line checks.",
+    "Keep the report with your home records."
+   ],
+   "title": "Book the annual AC service",
+   "why": "Low refrigerant and worn capacitors are cheap in spring and an emergency callout in the first heatwave."
+  },
+  {
+   "category": "HVAC",
+   "difficulty": "Easy",
+   "diyCost": 5,
+   "frequencyMonths": 6,
+   "id": "hvac-condensate",
+   "ignoreCost": 800,
+   "minutes": 15,
+   "needs": [
+    "White vinegar",
+    "Wet/dry vacuum (if blocked)"
+   ],
+   "seasons": [
+    "summer"
+   ],
+   "steps": [
+    "Find the PVC drain line near the indoor unit.",
+    "Pour a cup of white vinegar into the access tee.",
+    "Check the outside drain end is dripping freely.",
+    "If blocked, clear it with a wet/dry vacuum from outside."
+   ],
+   "title": "Flush the AC condensate drain",
+   "why": "A clogged condensate line backs water into the ceiling or the furnace closet, and the damage is always worse than the flush."
+  },
+  {
+   "category": "HVAC",
+   "difficulty": "Easy",
+   "diyCost": 5,
+   "frequencyMonths": 12,
+   "id": "hvac-thermostat",
+   "ignoreCost": 200,
+   "minutes": 5,
+   "needs": [
+    "Batteries in the size your thermostat takes"
+   ],
+   "seasons": [
+    "fall"
+   ],
+   "steps": [
+    "Replace the batteries even if it still lights up.",
+    "Run the heat and the AC for two minutes each to confirm both respond.",
+    "Check the programmed schedule still matches your routine."
+   ],
+   "title": "Check the thermostat and its batteries",
+   "why": "Dead thermostat batteries on the coldest night means no heat and a possible frozen pipe bill."
+  },
+  {
+   "category": "HVAC",
+   "difficulty": "Easy",
+   "diyCost": 18,
+   "frequencyMonths": 12,
+   "id": "hvac-humidifier",
+   "ignoreCost": 250,
+   "minutes": 15,
+   "needs": [
+    "Replacement humidifier pad"
+   ],
+   "seasons": [
+    "fall"
+   ],
+   "steps": [
+    "Turn the humidifier control off and close its water valve.",
+    "Open the cover on the furnace-mounted unit.",
+    "Swap the pad, checking the water feed tube is clear.",
+    "Restore water and power and set humidity to about 35 percent."
+   ],
+   "title": "Replace the humidifier pad",
+   "why": "A scaled-up pad stops humidifying and can grow mould that the furnace then blows through the whole house."
+  },
+  {
+   "category": "Plumbing",
+   "difficulty": "Medium",
+   "diyCost": 10,
+   "frequencyMonths": 12,
+   "id": "plumb-water-heater-flush",
+   "ignoreCost": 900,
+   "minutes": 45,
+   "needs": [
+    "Garden hose",
+    "Bucket"
+   ],
+   "seasons": [],
+   "steps": [
+    "Turn off power (breaker) or set gas to pilot, and close the cold inlet.",
+    "Attach a hose to the drain valve and run it to a floor drain.",
+    "Open the drain and a hot tap upstairs until the water runs clear.",
+    "Close everything, refill fully, then restore power or gas."
+   ],
+   "title": "Flush the water heater",
+   "why": "Sediment at the bottom of the tank cooks the element or the burner and is the main reason water heaters die young."
+  },
+  {
+   "category": "Plumbing",
+   "difficulty": "Medium",
+   "diyCost": 45,
+   "frequencyMonths": 36,
+   "id": "plumb-anode",
+   "ignoreCost": 900,
+   "minutes": 40,
+   "needs": [
+    "Socket wrench",
+    "Replacement anode rod (if needed)"
+   ],
+   "seasons": [],
+   "steps": [
+    "Turn off power or gas and the cold inlet, and drain a few gallons.",
+    "Unscrew the rod from the top of the tank with a socket wrench.",
+    "If it is mostly eaten away or coated in calcium, replace it.",
+    "Refill the tank before restoring power."
+   ],
+   "title": "Check the water heater anode rod",
+   "why": "The anode rod rusts so your tank does not. When it is eaten through, the tank itself starts rusting and leaks follow."
+  },
+  {
+   "category": "Plumbing",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 6,
+   "id": "plumb-sump",
+   "ignoreCost": 5000,
+   "minutes": 10,
+   "needs": [
+    "Bucket of water"
+   ],
+   "seasons": [
+    "spring"
+   ],
+   "steps": [
+    "Pour a bucket of water slowly into the pit.",
+    "The float should rise and the pump should kick on and clear the water.",
+    "Check the discharge line outside is not blocked or frozen.",
+    "If it hums but does not pump, it needs replacing before storm season."
+   ],
+   "title": "Test the sump pump",
+   "why": "A sump pump that died silently in winter announces itself during the first spring storm, through your basement floor."
+  },
+  {
+   "category": "Plumbing",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 6,
+   "id": "plumb-leak-check",
+   "ignoreCost": 2000,
+   "minutes": 15,
+   "needs": [
+    "Torch or phone light",
+    "Tissue"
+   ],
+   "seasons": [],
+   "steps": [
+    "Empty each under-sink cabinet.",
+    "Run the tap and the drain, then feel every pipe joint and supply line with a dry hand or tissue.",
+    "Check for water stains, swelling or a musty smell.",
+    "Tighten or re-seat anything that weeps, or book a plumber if a joint is corroded."
+   ],
+   "title": "Check under every sink for leaks",
+   "why": "A slow drip under a sink rots the cabinet floor and the subfloor for months before anyone notices."
+  },
+  {
+   "category": "Plumbing",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 12,
+   "id": "plumb-aerators",
+   "ignoreCost": 100,
+   "minutes": 20,
+   "needs": [
+    "White vinegar",
+    "Cloth"
+   ],
+   "seasons": [],
+   "steps": [
+    "Unscrew the aerator from each tap by hand or with pliers and a cloth.",
+    "Rinse the screens, and soak them in vinegar for an hour if scaled.",
+    "Rinse, refit, and check flow."
+   ],
+   "title": "Clean the faucet aerators",
+   "why": "Grit and scale in aerators strangle water flow and make a good tap feel like a plumbing problem."
+  },
+  {
+   "category": "Plumbing",
+   "difficulty": "Easy",
+   "diyCost": 12,
+   "frequencyMonths": 12,
+   "id": "plumb-winterize-faucets",
+   "ignoreCost": 1500,
+   "minutes": 20,
+   "needs": [
+    "Foam faucet covers"
+   ],
+   "seasons": [
+    "fall"
+   ],
+   "steps": [
+    "Disconnect and drain all garden hoses and store them inside.",
+    "Close the inside shutoff for each outdoor faucet, then open the outside tap to drain it.",
+    "Fit foam faucet covers outside."
+   ],
+   "title": "Winterize outdoor faucets and hoses",
+   "why": "Water left in an outdoor line freezes, splits the pipe inside the wall, and you find out in spring when you turn it on."
+  },
+  {
+   "category": "Plumbing",
+   "difficulty": "Easy",
+   "diyCost": 15,
+   "frequencyMonths": 24,
+   "id": "plumb-toilet-flapper",
+   "ignoreCost": 400,
+   "minutes": 20,
+   "needs": [
+    "Food colouring",
+    "Replacement flapper (if leaking)"
+   ],
+   "seasons": [],
+   "steps": [
+    "Put a few drops of food colouring in the tank and wait 20 minutes without flushing.",
+    "If colour appears in the bowl, the flapper is leaking.",
+    "Replace the flapper, they are cheap and tool-free on most toilets.",
+    "Check the water level sits about an inch below the overflow tube."
+   ],
+   "title": "Check toilet flappers and fill valves",
+   "why": "A silently leaking toilet can waste hundreds of gallons a day and is one of the most common surprise water bills."
+  },
+  {
+   "category": "Plumbing",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 3,
+   "id": "plumb-disposal",
+   "ignoreCost": 250,
+   "minutes": 10,
+   "needs": [
+    "Ice cubes",
+    "Half a lemon"
+   ],
+   "seasons": [],
+   "steps": [
+    "Run cold water and feed in a tray of ice cubes to scour the plates.",
+    "Follow with half a lemon cut in pieces.",
+    "Never reach inside with your hand, use tongs for anything dropped in."
+   ],
+   "title": "Clean the garbage disposal",
+   "why": "Old food film inside the disposal is the usual source of the mystery kitchen smell."
+  },
+  {
+   "category": "Plumbing",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 12,
+   "id": "plumb-valves",
+   "ignoreCost": 3000,
+   "minutes": 10,
+   "needs": [
+    "Nothing"
+   ],
+   "seasons": [],
+   "steps": [
+    "Find the main shutoff (basement, garage or meter box).",
+    "Close it fully, open a tap to confirm the water stops, then reopen it.",
+    "Make sure everyone in the house knows where it is."
+   ],
+   "title": "Exercise the main water shutoff valve",
+   "why": "The day a pipe bursts is the wrong day to discover the shutoff valve has seized solid."
+  },
+  {
+   "category": "Roof & Gutters",
+   "difficulty": "Medium",
+   "diyCost": 0,
+   "frequencyMonths": 6,
+   "id": "roof-gutters",
+   "ignoreCost": 2500,
+   "minutes": 90,
+   "needs": [
+    "Ladder",
+    "Gloves",
+    "Bucket",
+    "Garden hose"
+   ],
+   "seasons": [
+    "spring",
+    "fall"
+   ],
+   "steps": [
+    "Scoop debris into a bucket, working from a stable ladder with someone footing it.",
+    "Flush each run with a hose and watch for leaks at joints.",
+    "Check downspouts run freely and splash blocks push water away from the house.",
+    "Consider guards only if trees overhang heavily, they reduce, not remove, this job."
+   ],
+   "title": "Clean the gutters and downspouts",
+   "why": "Overflowing gutters pour water down your walls and into the foundation, the most expensive place water can go."
+  },
+  {
+   "category": "Roof & Gutters",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 12,
+   "id": "roof-inspect",
+   "ignoreCost": 6000,
+   "minutes": 20,
+   "needs": [
+    "Binoculars (optional)"
+   ],
+   "seasons": [
+    "spring"
+   ],
+   "steps": [
+    "Walk the perimeter with binoculars and look for missing, curled or lifted shingles.",
+    "Check flashing around chimneys and vents for gaps or rust.",
+    "Look in the attic for daylight, stains or damp insulation after rain.",
+    "Book a roofer for anything beyond a single shingle."
+   ],
+   "title": "Inspect the roof from the ground",
+   "why": "One lifted or missing shingle is a cheap repair; the same leak left a year is rotten decking and a ceiling stain."
+  },
+  {
+   "category": "Roof & Gutters",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 12,
+   "id": "roof-attic",
+   "ignoreCost": 800,
+   "minutes": 20,
+   "needs": [
+    "Tape measure",
+    "Torch"
+   ],
+   "seasons": [
+    "fall"
+   ],
+   "steps": [
+    "Measure insulation depth; about 10 to 14 inches is typical for cold climates.",
+    "Check vents are not blocked by insulation or stored boxes.",
+    "Look for mould, damp patches or daylight at the edges."
+   ],
+   "title": "Check attic insulation and ventilation",
+   "why": "Thin or damp attic insulation means heat escaping all winter and ice dams forming on the roof edge."
+  },
+  {
+   "category": "Roof & Gutters",
+   "difficulty": "Medium",
+   "diyCost": 0,
+   "frequencyMonths": 12,
+   "id": "roof-branches",
+   "ignoreCost": 4000,
+   "minutes": 60,
+   "needs": [
+    "Pruning saw or loppers",
+    "Ladder"
+   ],
+   "seasons": [
+    "summer"
+   ],
+   "steps": [
+    "Cut back anything touching or within about 6 feet of the roof.",
+    "Never work near power lines; that is a utility or tree-service job.",
+    "Clear what fell into the gutters while you are there."
+   ],
+   "title": "Trim branches away from the roof",
+   "why": "Branches rubbing the roof strip the shingle surface, and a storm turns an overhanging limb into a roof repair."
+  },
+  {
+   "category": "Exterior",
+   "difficulty": "Easy",
+   "diyCost": 15,
+   "frequencyMonths": 12,
+   "id": "ext-caulk",
+   "ignoreCost": 600,
+   "minutes": 60,
+   "needs": [
+    "Exterior caulk",
+    "Caulk gun",
+    "Utility knife"
+   ],
+   "seasons": [
+    "fall"
+   ],
+   "steps": [
+    "Walk the outside and mark every cracked or separated joint.",
+    "Cut out failed caulk, wipe the joint dry.",
+    "Run a fresh bead, smooth it with a wet finger, and let it cure before rain."
+   ],
+   "title": "Re-caulk windows and door frames",
+   "why": "Cracked exterior caulk is an open door for water and cold air, and it fails quietly a joint at a time."
+  },
+  {
+   "category": "Exterior",
+   "difficulty": "Medium",
+   "diyCost": 35,
+   "frequencyMonths": 24,
+   "id": "ext-driveway",
+   "ignoreCost": 3000,
+   "minutes": 90,
+   "needs": [
+    "Crack filler",
+    "Broom"
+   ],
+   "seasons": [
+    "fall"
+   ],
+   "steps": [
+    "Sweep cracks clean and let the surface dry fully.",
+    "Fill cracks with crack filler, larger ones with backer rod first.",
+    "Consider a full seal coat every 2 to 3 years on asphalt."
+   ],
+   "title": "Seal driveway cracks",
+   "why": "Water in a small crack freezes, widens it all winter, and turns a tube of filler into a resurfacing bill."
+  },
+  {
+   "category": "Exterior",
+   "difficulty": "Medium",
+   "diyCost": 0,
+   "frequencyMonths": 12,
+   "id": "ext-siding-wash",
+   "ignoreCost": 1200,
+   "minutes": 90,
+   "needs": [
+    "Soft brush",
+    "House wash",
+    "Garden hose"
+   ],
+   "seasons": [
+    "spring"
+   ],
+   "steps": [
+    "Use a garden hose and soft brush with house wash, working bottom to top, rinsing top down.",
+    "Avoid pressure washers on wood, fibre cement and older vinyl; they force water behind the boards.",
+    "Check for soft or bubbling paint while you wash and note it for touch-up."
+   ],
+   "title": "Wash the siding",
+   "why": "Algae and grime hold moisture against siding and paint, and a gentle wash adds years to both."
+  },
+  {
+   "category": "Exterior",
+   "difficulty": "Medium",
+   "diyCost": 80,
+   "frequencyMonths": 24,
+   "id": "ext-deck",
+   "ignoreCost": 5000,
+   "minutes": 120,
+   "needs": [
+    "Screwdriver",
+    "Deck cleaner",
+    "Sealer or stain",
+    "Brush or roller"
+   ],
+   "seasons": [
+    "spring"
+   ],
+   "steps": [
+    "Push a screwdriver into boards near the ground and posts; soft means rot has started.",
+    "Tighten loose boards and hammer down lifted nails, or swap to screws.",
+    "Clean, let dry two good days, then apply sealer or stain."
+   ],
+   "title": "Check and seal the deck",
+   "why": "A deck board that fails the screwdriver test this year is a replaced deck in five; sealer is the cheap version of that story."
+  },
+  {
+   "category": "Exterior",
+   "difficulty": "Easy",
+   "diyCost": 12,
+   "frequencyMonths": 12,
+   "id": "ext-garage-door",
+   "ignoreCost": 700,
+   "minutes": 25,
+   "needs": [
+    "Garage door lubricant spray",
+    "Block of wood"
+   ],
+   "seasons": [],
+   "steps": [
+    "Lubricate rollers, hinges and springs with garage-door spray (not grease).",
+    "Test balance: disconnect the opener and lift the door halfway; it should stay put.",
+    "Test the auto-reverse with a block of wood on the floor; it must reverse on contact.",
+    "Tighten the visible hinge bolts."
+   ],
+   "title": "Service the garage door",
+   "why": "A door that is out of balance makes the opener strain on every cycle until the gear or the spring gives up."
+  },
+  {
+   "category": "Exterior",
+   "difficulty": "Medium",
+   "diyCost": 0,
+   "frequencyMonths": 12,
+   "id": "ext-sprinkler-start",
+   "ignoreCost": 900,
+   "minutes": 45,
+   "needs": [
+    "Sprinkler key or wrench"
+   ],
+   "seasons": [
+    "spring"
+   ],
+   "steps": [
+    "Open the water supply slowly and fill the main line.",
+    "Run each zone and walk it: look for geysers, tilted heads and dry arcs.",
+    "Adjust or replace broken heads and note the controller schedule."
+   ],
+   "title": "Start up the sprinkler system",
+   "why": "A head cracked by winter ice sprays your foundation or the street all summer before anyone notices."
+  },
+  {
+   "category": "Exterior",
+   "difficulty": "Pro",
+   "diyCost": 60,
+   "frequencyMonths": 12,
+   "id": "ext-sprinkler-blowout",
+   "ignoreCost": 1200,
+   "minutes": 45,
+   "needs": [
+    "Irrigation company or an air compressor"
+   ],
+   "seasons": [
+    "fall"
+   ],
+   "steps": [
+    "Close the sprinkler water supply and open the drains.",
+    "Either book a blow-out service or use a compressor zone by zone at safe pressure.",
+    "Leave valves half open for winter."
+   ],
+   "title": "Blow out the sprinkler system",
+   "why": "Water left in sprinkler lines freezes and splits pipes underground, where every repair starts with digging."
+  },
+  {
+   "category": "Appliances",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 12,
+   "id": "int-fridge-coils",
+   "ignoreCost": 700,
+   "minutes": 20,
+   "needs": [
+    "Vacuum with brush attachment",
+    "Coil brush (optional)"
+   ],
+   "seasons": [],
+   "steps": [
+    "Unplug the fridge or switch it off.",
+    "Pull the bottom grille or rear panel and vacuum the coils with a brush attachment.",
+    "A long coil brush reaches what the vacuum misses.",
+    "Restore power and check it cycles off normally."
+   ],
+   "title": "Clean the refrigerator coils",
+   "why": "Dust-blanketed coils make the fridge run hot and long, and the compressor pays for it."
+  },
+  {
+   "category": "Appliances",
+   "difficulty": "Easy",
+   "diyCost": 35,
+   "frequencyMonths": 6,
+   "id": "int-fridge-filter",
+   "ignoreCost": 150,
+   "minutes": 10,
+   "needs": [
+    "Replacement filter for your model"
+   ],
+   "seasons": [],
+   "steps": [
+    "Twist out the old filter (inside the fridge or in the grille).",
+    "Fit the new one and run two litres of water through the dispenser to flush it.",
+    "Reset the filter light."
+   ],
+   "title": "Replace the fridge water filter",
+   "why": "An exhausted filter stops filtering long before the light comes on, and flow slows to a trickle."
+  },
+  {
+   "category": "Appliances",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 3,
+   "id": "int-dishwasher",
+   "ignoreCost": 450,
+   "minutes": 15,
+   "needs": [
+    "Dish soap",
+    "White vinegar"
+   ],
+   "seasons": [],
+   "steps": [
+    "Twist out the filter at the bottom and wash it in hot soapy water.",
+    "Check the spray arm holes for seeds and glass slivers.",
+    "Run the hottest empty cycle with a cup of vinegar in a bowl on the top rack."
+   ],
+   "title": "Clean the dishwasher filter and arms",
+   "why": "A clogged filter is why dishes come out gritty, and it strains the drain pump on every cycle."
+  },
+  {
+   "category": "Appliances",
+   "difficulty": "Easy",
+   "diyCost": 8,
+   "frequencyMonths": 6,
+   "id": "int-washer-care",
+   "ignoreCost": 2500,
+   "minutes": 25,
+   "needs": [
+    "Machine cleaner or vinegar",
+    "Replacement hoses (if bulging)"
+   ],
+   "seasons": [],
+   "steps": [
+    "Wipe the door gasket folds and leave the door ajar after washes.",
+    "Run an empty hot cycle with a machine cleaner or vinegar.",
+    "Feel both supply hoses for bulges or cracks; replace rubber hoses every 5 years, braided steel lasts longer."
+   ],
+   "title": "Clean the washing machine and check hoses",
+   "why": "A burst rubber washer hose is one of the top causes of home water damage, and the mould smell comes free with a dirty gasket."
+  },
+  {
+   "category": "Appliances",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 6,
+   "id": "int-range-hood",
+   "ignoreCost": 500,
+   "minutes": 20,
+   "needs": [
+    "Degreasing dish soap"
+   ],
+   "seasons": [],
+   "steps": [
+    "Slide or unclip the metal filter.",
+    "Soak it in hot water with degreasing dish soap for 15 minutes and scrub.",
+    "Dry fully before refitting."
+   ],
+   "title": "Clean the range hood filter",
+   "why": "A grease-loaded filter stops catching grease, which then coats the kitchen and becomes a fire risk above the stove."
+  },
+  {
+   "category": "Interior",
+   "difficulty": "Easy",
+   "diyCost": 14,
+   "frequencyMonths": 24,
+   "id": "int-bathroom-caulk",
+   "ignoreCost": 3500,
+   "minutes": 45,
+   "needs": [
+    "Kitchen-and-bath caulk",
+    "Utility knife"
+   ],
+   "seasons": [],
+   "steps": [
+    "Look for gaps, black mould that will not scrub off, or caulk pulling away.",
+    "Cut out failed sections, clean with bleach solution, let dry fully.",
+    "Run a fresh bead of kitchen-and-bath caulk and smooth it."
+   ],
+   "title": "Check bathroom caulk and grout",
+   "why": "Failed caulk behind a tub lets water into the wall on every shower, and walls rot silently for years."
+  },
+  {
+   "category": "Interior",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 6,
+   "id": "int-gfci",
+   "ignoreCost": 300,
+   "minutes": 10,
+   "needs": [
+    "Nothing"
+   ],
+   "seasons": [],
+   "steps": [
+    "Press TEST on each kitchen, bathroom, garage and outdoor outlet; power should cut.",
+    "Press RESET to restore it.",
+    "Replace any outlet that will not trip or will not reset."
+   ],
+   "title": "Test GFCI outlets",
+   "why": "A GFCI that no longer trips is just an outlet, usually discovered after it mattered."
+  },
+  {
+   "category": "Safety",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 1,
+   "id": "safety-smoke-test",
+   "ignoreCost": 0,
+   "minutes": 5,
+   "needs": [
+    "Step stool",
+    "Batteries (if weak)"
+   ],
+   "seasons": [],
+   "steps": [
+    "Press the test button on every smoke and carbon monoxide alarm.",
+    "Replace batteries in any that sound weak, even if they pass.",
+    "Vacuum dust off the vents while you are up there."
+   ],
+   "title": "Test smoke and CO alarms",
+   "why": "Alarms only protect you if they work; most fire deaths happen in homes with no working smoke alarm."
+  },
+  {
+   "category": "Safety",
+   "difficulty": "Easy",
+   "diyCost": 25,
+   "frequencyMonths": 12,
+   "id": "safety-smoke-replace",
+   "ignoreCost": 0,
+   "minutes": 15,
+   "needs": [
+    "New alarms for any that are expired"
+   ],
+   "seasons": [],
+   "steps": [
+    "Check the manufacture date printed on each alarm.",
+    "Replace smoke alarms over 10 years old and CO alarms over 7.",
+    "Write the install date on the new alarm with a marker."
+   ],
+   "title": "Replace out-of-date alarms",
+   "why": "Smoke alarm sensors wear out: at 10 years old (7 for CO) the alarm can look fine and still fail to sense."
+  },
+  {
+   "category": "Safety",
+   "difficulty": "Medium",
+   "diyCost": 20,
+   "frequencyMonths": 12,
+   "id": "safety-dryer-vent",
+   "ignoreCost": 15000,
+   "minutes": 40,
+   "needs": [
+    "Dryer vent brush kit",
+    "Vacuum"
+   ],
+   "seasons": [],
+   "steps": [
+    "Pull the dryer out and disconnect the vent hose.",
+    "Brush the full line with a vent brush kit, including the outside hood.",
+    "Vacuum the lint trap housing and check the outside flap opens when running.",
+    "Reconnect with metal tape, never screws that catch lint."
+   ],
+   "title": "Clean the dryer vent line",
+   "why": "Lint packed in the vent line is a leading cause of house fires, and it doubles drying time long before that."
+  },
+  {
+   "category": "Safety",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 12,
+   "id": "safety-extinguisher",
+   "ignoreCost": 0,
+   "minutes": 5,
+   "needs": [
+    "Nothing"
+   ],
+   "seasons": [],
+   "steps": [
+    "Check the pressure gauge sits in the green.",
+    "Look for rust, a cracked hose or a missing pin.",
+    "Shake dry-chemical extinguishers to keep the powder loose.",
+    "Replace or recharge anything out of date; keep one in the kitchen and one near bedrooms."
+   ],
+   "title": "Check fire extinguishers",
+   "why": "An extinguisher with a flat gauge is decoration. The check takes a minute a year."
+  },
+  {
+   "category": "Safety",
+   "difficulty": "Easy",
+   "diyCost": 20,
+   "frequencyMonths": 24,
+   "id": "safety-radon",
+   "ignoreCost": 0,
+   "minutes": 10,
+   "needs": [
+    "Radon test kit"
+   ],
+   "seasons": [
+    "winter"
+   ],
+   "steps": [
+    "Place a test kit in the lowest lived-in level, away from drafts.",
+    "Leave it for the stated period (usually 2 to 4 days) with windows closed.",
+    "Mail it to the lab; if results are at or above 4 pCi/L, get a mitigation quote."
+   ],
+   "title": "Test for radon",
+   "why": "Radon is the second leading cause of lung cancer and is common in many US regions; you cannot see or smell it, only test for it."
+  },
+  {
+   "category": "HVAC",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 6,
+   "id": "hvac-vents",
+   "ignoreCost": 150,
+   "minutes": 20,
+   "needs": [
+    "Vacuum",
+    "Dish soap"
+   ],
+   "seasons": [],
+   "steps": [
+    "Pop off the return grilles and vacuum inside as far as the hose reaches.",
+    "Wash grilles in soapy water and dry before refitting.",
+    "Check no supply vent is blocked by furniture or rugs."
+   ],
+   "title": "Vacuum vents and returns",
+   "why": "Dust-choked returns starve the system of air and spread dust through every room each cycle."
+  },
+  {
+   "category": "HVAC",
+   "difficulty": "Easy",
+   "diyCost": 15,
+   "frequencyMonths": 36,
+   "id": "hvac-ducts",
+   "ignoreCost": 500,
+   "minutes": 30,
+   "needs": [
+    "Mastic or metal tape",
+    "Torch"
+   ],
+   "seasons": [],
+   "steps": [
+    "Walk the attic, basement or crawlspace with the system running.",
+    "Feel along joints for moving air.",
+    "Seal gaps with mastic or metal tape, never cloth duct tape.",
+    "Note crushed or disconnected runs for a pro if you cannot reach them."
+   ],
+   "title": "Inspect visible ductwork",
+   "why": "Leaking ducts in an attic or crawlspace can lose a quarter of the air you paid to heat or cool."
+  },
+  {
+   "category": "Plumbing",
+   "difficulty": "Easy",
+   "diyCost": 8,
+   "frequencyMonths": 2,
+   "id": "plumb-softener",
+   "ignoreCost": 300,
+   "minutes": 5,
+   "needs": [
+    "Softener salt"
+   ],
+   "seasons": [],
+   "steps": [
+    "Open the brine tank and check the salt level sits above the water.",
+    "Break up any hard salt crust bridging the top.",
+    "Top up with the salt type your manual specifies."
+   ],
+   "title": "Check water softener salt",
+   "why": "An empty brine tank means hard water quietly scaling the water heater, dishwasher and every tap."
+  },
+  {
+   "category": "Plumbing",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 12,
+   "id": "plumb-tp-valve",
+   "ignoreCost": 900,
+   "minutes": 5,
+   "needs": [
+    "Bucket"
+   ],
+   "seasons": [],
+   "steps": [
+    "Put a bucket under the discharge pipe.",
+    "Lift the valve lever briefly; hot water should flow, then stop cleanly when released.",
+    "If it will not open or keeps dripping, replace the valve or call a plumber."
+   ],
+   "title": "Test the water heater T&P valve",
+   "why": "The temperature-and-pressure relief valve is the safety device that stops a water heater becoming a pressure bomb; it seizes if never tested."
+  },
+  {
+   "category": "Plumbing",
+   "difficulty": "Easy",
+   "diyCost": 3,
+   "frequencyMonths": 6,
+   "id": "plumb-showerheads",
+   "ignoreCost": 80,
+   "minutes": 15,
+   "needs": [
+    "White vinegar",
+    "Plastic bag and band",
+    "Old toothbrush"
+   ],
+   "seasons": [],
+   "steps": [
+    "Tie a bag of white vinegar over the showerhead so it is submerged.",
+    "Leave overnight, remove, and scrub the nozzles with an old toothbrush.",
+    "Run the shower for a minute to flush."
+   ],
+   "title": "Descale showerheads",
+   "why": "Mineral scale turns a good shower into a sideways spray and strains the mixer cartridge."
+  },
+  {
+   "category": "Plumbing",
+   "difficulty": "Easy",
+   "diyCost": 6,
+   "frequencyMonths": 6,
+   "id": "plumb-drains",
+   "ignoreCost": 350,
+   "minutes": 20,
+   "needs": [
+    "Plastic drain tool",
+    "Drain strainers"
+   ],
+   "seasons": [],
+   "steps": [
+    "Remove the stopper and pull out hair and soap build-up with a drain tool.",
+    "Flush with a kettle of hot water.",
+    "Fit strainers on bathroom drains to slow the next build-up."
+   ],
+   "title": "Clear slow drains properly",
+   "why": "A slow drain is a blockage announcing itself; chemical openers damage pipes and rarely fix the hair and grease causing it."
+  },
+  {
+   "category": "Roof & Gutters",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 12,
+   "id": "roof-chimney",
+   "ignoreCost": 2800,
+   "minutes": 15,
+   "needs": [
+    "Binoculars"
+   ],
+   "seasons": [
+    "fall"
+   ],
+   "steps": [
+    "From the ground with binoculars, confirm the cap is present and straight.",
+    "Check the flashing line where chimney meets roof for gaps.",
+    "Look at the mortar for crumbling joints and book tuckpointing if it is powdering."
+   ],
+   "title": "Check chimney cap and flashing",
+   "why": "A missing chimney cap lets rain and animals straight into the flue, and failed flashing is a classic hidden leak."
+  },
+  {
+   "category": "Roof & Gutters",
+   "difficulty": "Medium",
+   "diyCost": 40,
+   "frequencyMonths": 24,
+   "id": "roof-moss",
+   "ignoreCost": 3000,
+   "minutes": 60,
+   "needs": [
+    "Roof moss treatment",
+    "Sprayer"
+   ],
+   "seasons": [
+    "spring"
+   ],
+   "steps": [
+    "Apply a roof-safe moss treatment from the ladder edge or with an extended sprayer; never pressure wash shingles.",
+    "Let weather wash the dead moss off over the following weeks.",
+    "Trim the worst overhanging shade if it keeps returning."
+   ],
+   "title": "Treat roof moss and algae",
+   "why": "Moss lifts shingle edges and holds water against the roof, halving the life of the shaded side."
+  },
+  {
+   "category": "Exterior",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 12,
+   "id": "ext-foundation",
+   "ignoreCost": 8000,
+   "minutes": 20,
+   "needs": [
+    "Camera phone",
+    "Topsoil (if low spots)"
+   ],
+   "seasons": [
+    "spring"
+   ],
+   "steps": [
+    "Walk the full perimeter and check the ground slopes away from the walls.",
+    "Mark cracks wider than a coin's thickness and photograph them with a date for comparison.",
+    "Clear soil and mulch a few inches below siding and vents.",
+    "Add soil to low spots so water runs away, not in."
+   ],
+   "title": "Walk the foundation",
+   "why": "Soil that slopes toward the house and cracks at the base are the earliest, cheapest warnings of foundation trouble."
+  },
+  {
+   "category": "Exterior",
+   "difficulty": "Medium",
+   "diyCost": 25,
+   "frequencyMonths": 12,
+   "id": "ext-paint",
+   "ignoreCost": 2500,
+   "minutes": 60,
+   "needs": [
+    "Scraper",
+    "Primer",
+    "Matching exterior paint",
+    "Brush"
+   ],
+   "seasons": [
+    "summer"
+   ],
+   "steps": [
+    "Scrape anything loose or blistering back to sound wood.",
+    "Sand, prime bare spots, and let the primer dry.",
+    "Match the existing paint and feather two thin coats."
+   ],
+   "title": "Touch up failing paint",
+   "why": "Paint is the waterproof skin of wood siding and trim; one blistered board left bare rots in a single wet season."
+  },
+  {
+   "category": "Exterior",
+   "difficulty": "Easy",
+   "diyCost": 10,
+   "frequencyMonths": 12,
+   "id": "ext-screens",
+   "ignoreCost": 200,
+   "minutes": 30,
+   "needs": [
+    "Screen patch kit or mesh",
+    "Silicone spray"
+   ],
+   "seasons": [
+    "spring"
+   ],
+   "steps": [
+    "Open every window and inspect the screen mesh for tears.",
+    "Patch small holes or re-screen the frame with a spline roller.",
+    "Check for fog between double panes, a sign the seal has failed.",
+    "Lubricate sticking window tracks with silicone spray."
+   ],
+   "title": "Check window screens and seals",
+   "why": "Torn screens invite insects all summer, and failed window seals show up as fogged glass and lost insulation."
+  },
+  {
+   "category": "Exterior",
+   "difficulty": "Easy",
+   "diyCost": 6,
+   "frequencyMonths": 12,
+   "id": "ext-locks",
+   "ignoreCost": 150,
+   "minutes": 15,
+   "needs": [
+    "Graphite lock lubricant",
+    "Light oil"
+   ],
+   "seasons": [],
+   "steps": [
+    "Puff graphite powder into each exterior lock, never oil, which traps grit.",
+    "Work the key in and out a few times.",
+    "Oil squeaking door hinges with a drop of light oil and wipe the excess."
+   ],
+   "title": "Lubricate locks and hinges",
+   "why": "A lock that needs force is wearing its key and itself out; graphite keeps it smooth without gumming it up."
+  },
+  {
+   "category": "Exterior",
+   "difficulty": "Easy",
+   "diyCost": 20,
+   "frequencyMonths": 12,
+   "id": "ext-fence",
+   "ignoreCost": 1800,
+   "minutes": 30,
+   "needs": [
+    "Screwdriver",
+    "Light oil"
+   ],
+   "seasons": [
+    "spring"
+   ],
+   "steps": [
+    "Push each post at ground level; any that rock need bracing or resetting.",
+    "Check boards and rails for rot at the bottom edge with a screwdriver.",
+    "Oil gate hinges and confirm latches catch on their own."
+   ],
+   "title": "Check fences and gates",
+   "why": "One leaning post ignored becomes a fence line replaced after the first storm flattens it."
+  },
+  {
+   "category": "Interior",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 12,
+   "id": "int-exhaust-fan",
+   "ignoreCost": 1200,
+   "minutes": 15,
+   "needs": [
+    "Vacuum",
+    "Dish soap"
+   ],
+   "seasons": [],
+   "steps": [
+    "Switch the fan off at the breaker if you will remove the cover.",
+    "Pull the cover down, wash it, and vacuum the fan blades and housing.",
+    "Hold a tissue near the running fan; it should pull it firmly to the grille."
+   ],
+   "title": "Clean bathroom exhaust fans",
+   "why": "A dust-choked fan moves almost no air, so shower steam stays in the room and feeds mould on the ceiling."
+  },
+  {
+   "category": "Interior",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 6,
+   "id": "int-floor-drains",
+   "ignoreCost": 400,
+   "minutes": 5,
+   "needs": [
+    "Bucket of water",
+    "Cooking oil"
+   ],
+   "seasons": [],
+   "steps": [
+    "Pour a bucket of water slowly into each basement or laundry floor drain.",
+    "Add a teaspoon of cooking oil on top to slow evaporation.",
+    "Note any drain that gurgles or backs up for a plumber visit."
+   ],
+   "title": "Top up floor drain traps",
+   "why": "A dry floor-drain trap is an open pipe to the sewer, and the smell arrives long before anyone connects the two."
+  },
+  {
+   "category": "Interior",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 6,
+   "id": "int-fans",
+   "ignoreCost": 100,
+   "minutes": 15,
+   "needs": [
+    "Pillowcase",
+    "Step stool"
+   ],
+   "seasons": [
+    "spring",
+    "fall"
+   ],
+   "steps": [
+    "Slip a pillowcase over each blade and pull the dust off into it.",
+    "Flip the direction switch on the motor: counter-clockwise for summer, clockwise on low for winter.",
+    "Check the fan runs without wobble on high."
+   ],
+   "title": "Clean and reverse ceiling fans",
+   "why": "Fans should push air down in summer and pull it up in winter; dust-heavy blades do neither well and shower the room."
+  },
+  {
+   "category": "Interior",
+   "difficulty": "Easy",
+   "diyCost": 8,
+   "frequencyMonths": 6,
+   "id": "int-freezer-temp",
+   "ignoreCost": 300,
+   "minutes": 10,
+   "needs": [
+    "Appliance thermometer"
+   ],
+   "seasons": [],
+   "steps": [
+    "Leave an appliance thermometer in a glass of water in the fridge overnight.",
+    "Fridge should read 37 to 40\u00b0F, freezer 0\u00b0F or below.",
+    "Adjust one notch at a time and re-check the next day.",
+    "Check door seals grip a banknote all the way round; a loose seal leaks cold air."
+   ],
+   "title": "Check fridge and freezer temperatures",
+   "why": "A fridge drifting above 40\u00b0F spoils food quietly, and a freezer above 0\u00b0F shortens the life of everything in it."
+  },
+  {
+   "category": "Interior",
+   "difficulty": "Easy",
+   "diyCost": 10,
+   "frequencyMonths": 12,
+   "id": "int-water-sensors",
+   "ignoreCost": 5000,
+   "minutes": 10,
+   "needs": [
+    "Batteries"
+   ],
+   "seasons": [],
+   "steps": [
+    "Test each sensor by touching its contacts with a damp finger; it should sound or alert.",
+    "Replace batteries in any that are weak.",
+    "Confirm sensors sit under the water heater, washer, fridge line and sinks."
+   ],
+   "title": "Check leak sensors and batteries",
+   "why": "A leak sensor with a flat battery is silent during the exact slow leak it was bought to catch."
+  },
+  {
+   "category": "Appliances",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 6,
+   "id": "appl-microwave-filter",
+   "ignoreCost": 200,
+   "minutes": 15,
+   "needs": [
+    "Degreasing dish soap",
+    "Charcoal filter (if fitted)"
+   ],
+   "seasons": [],
+   "steps": [
+    "Slide the filter out from under the microwave.",
+    "Soak in hot water with degreasing dish soap, scrub, and dry.",
+    "Replace charcoal filters instead of washing them, about every 6 months."
+   ],
+   "title": "Clean the microwave grease filter",
+   "why": "On over-range microwaves the grease filter protects the fan; a blocked one vents steam back into the kitchen."
+  },
+  {
+   "category": "Appliances",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 6,
+   "id": "appl-dehumidifier",
+   "ignoreCost": 350,
+   "minutes": 20,
+   "needs": [
+    "Mild bleach solution",
+    "Vacuum"
+   ],
+   "seasons": [
+    "spring"
+   ],
+   "steps": [
+    "Empty and wash the bucket with a mild bleach solution.",
+    "Rinse the air filter and let it dry fully.",
+    "Vacuum the coils gently and set humidity to about 45 percent."
+   ],
+   "title": "Clean the dehumidifier",
+   "why": "A clogged dehumidifier filter makes the unit run constantly while the basement stays damp enough for mould."
+  },
+  {
+   "category": "Appliances",
+   "difficulty": "Easy",
+   "diyCost": 25,
+   "frequencyMonths": 3,
+   "id": "appl-air-purifier",
+   "ignoreCost": 150,
+   "minutes": 10,
+   "needs": [
+    "Replacement filters for your model"
+   ],
+   "seasons": [],
+   "steps": [
+    "Vacuum washable pre-filters monthly and let them dry.",
+    "Replace HEPA and carbon filters at the interval on the filter itself.",
+    "Reset the filter indicator after changing."
+   ],
+   "title": "Replace purifier and vacuum filters",
+   "why": "A spent HEPA filter stops cleaning the air while the machine still sounds like it is working."
+  },
+  {
+   "category": "Appliances",
+   "difficulty": "Easy",
+   "diyCost": 20,
+   "frequencyMonths": 12,
+   "id": "appl-oven-seal",
+   "ignoreCost": 250,
+   "minutes": 10,
+   "needs": [
+    "Dish soap",
+    "Replacement gasket (if needed)"
+   ],
+   "seasons": [],
+   "steps": [
+    "Run a banknote around the closed door; it should grip evenly.",
+    "Clean the gasket with warm soapy water to remove baked-on grease.",
+    "Replace the gasket if it is cracked, flattened or loose in sections."
+   ],
+   "title": "Check the oven door seal",
+   "why": "A perished oven gasket leaks heat on every bake, stretching cooking times and heating the kitchen instead of the food."
+  },
+  {
+   "category": "Seasonal",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 12,
+   "id": "seasonal-heater-safety",
+   "ignoreCost": 0,
+   "minutes": 10,
+   "needs": [
+    "Nothing"
+   ],
+   "seasons": [
+    "winter"
+   ],
+   "steps": [
+    "Inspect cords and plugs for damage before first use.",
+    "Place heaters on a hard flat surface, a metre from bedding, curtains and furniture.",
+    "Confirm the tip-over switch cuts power when lifted.",
+    "Never run one on an extension cord or overnight unattended."
+   ],
+   "title": "Space heater safety check",
+   "why": "Space heaters cause a large share of winter house fires, almost always through placement or a damaged cord."
+  },
+  {
+   "category": "Seasonal",
+   "difficulty": "Easy",
+   "diyCost": 10,
+   "frequencyMonths": 12,
+   "id": "seasonal-grill",
+   "ignoreCost": 400,
+   "minutes": 25,
+   "needs": [
+    "Dish soap solution",
+    "Grill brush"
+   ],
+   "seasons": [
+    "spring"
+   ],
+   "steps": [
+    "Brush soapy water on gas hoses and connections and open the tank; bubbles mean a leak.",
+    "Clear burner tubes and check for rust-through.",
+    "Scrub grates, empty the grease tray, and test every burner lights evenly."
+   ],
+   "title": "Check the grill before season",
+   "why": "A cracked gas hose or a spider nest in a burner tube is how the first barbecue of the year becomes a fire call."
+  },
+  {
+   "category": "Seasonal",
+   "difficulty": "Easy",
+   "diyCost": 15,
+   "frequencyMonths": 12,
+   "id": "seasonal-storm-kit",
+   "ignoreCost": 0,
+   "minutes": 20,
+   "needs": [
+    "Batteries",
+    "Replacement water or food if expired"
+   ],
+   "seasons": [
+    "summer"
+   ],
+   "steps": [
+    "Test every torch and replace batteries; keep spares with it.",
+    "Check stored water and tinned food dates and rotate anything expiring.",
+    "Charge the power bank and confirm the phone car charger is in the car.",
+    "Make sure the kit includes the house shutoff wrench if your meter needs one."
+   ],
+   "title": "Refresh the storm kit",
+   "why": "Torches with dead batteries and expired water are the standard state of a storm kit that is never checked."
+  },
+  {
+   "category": "Seasonal",
+   "difficulty": "Medium",
+   "diyCost": 12,
+   "frequencyMonths": 12,
+   "id": "seasonal-window-ac",
+   "ignoreCost": 350,
+   "minutes": 30,
+   "needs": [
+    "AC cover or storage space",
+    "Foam strips"
+   ],
+   "seasons": [
+    "fall"
+   ],
+   "steps": [
+    "Clean the filter and let the unit dry fully on fan mode.",
+    "Either remove and store it inside, or fit an insulated exterior cover.",
+    "Seal gaps around the unit with foam strips if it stays in."
+   ],
+   "title": "Store or cover window AC units",
+   "why": "A window unit left bare all winter leaks cold air around it and rusts its coils with trapped moisture."
+  },
+  {
+   "category": "Safety",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 12,
+   "id": "safety-shutoff-drill",
+   "ignoreCost": 3000,
+   "minutes": 10,
+   "needs": [
+    "Labels or tags"
+   ],
+   "seasons": [],
+   "steps": [
+    "Walk everyone in the house to the main water shutoff and the breaker panel.",
+    "Tag both with bright labels.",
+    "Save a photo of each location in the app for the babysitter-and-guests moments."
+   ],
+   "title": "Show everyone the shutoffs",
+   "why": "In a burst-pipe emergency the water stops when someone who is home knows the valve, not when the one who knows lands."
+  },
+  {
+   "category": "Plumbing",
+   "difficulty": "Easy",
+   "diyCost": 18,
+   "frequencyMonths": 12,
+   "id": "plumb-pressure",
+   "ignoreCost": 1200,
+   "minutes": 10,
+   "needs": [
+    "Water pressure gauge"
+   ],
+   "seasons": [],
+   "steps": [
+    "Fit a pressure gauge to an outside tap or laundry tap.",
+    "Turn off all water use, open that tap fully and read the gauge.",
+    "Healthy is 40 to 80 psi; above that, a plumber should check the regulator."
+   ],
+   "title": "Check home water pressure",
+   "why": "Pressure above 80 psi quietly destroys appliance valves, hoses and water heater life; too low often means a failing regulator."
+  },
+  {
+   "category": "Exterior",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 12,
+   "id": "ext-dryer-vent-outside",
+   "ignoreCost": 600,
+   "minutes": 5,
+   "needs": [
+    "Nothing"
+   ],
+   "seasons": [],
+   "steps": [
+    "Run the dryer and check the outside flap opens fully with strong airflow.",
+    "Clear any screen or guard that catches lint; vent hoods should not be screened.",
+    "Clear shrubs or mulch blocking the outlet."
+   ],
+   "title": "Check the dryer vent outlet",
+   "why": "A vent hood stuck shut or screened over traps moist air and lint, whatever you cleaned inside."
+  },
+  {
+   "category": "Interior",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 12,
+   "id": "int-attic-pests",
+   "ignoreCost": 2500,
+   "minutes": 15,
+   "needs": [
+    "Torch",
+    "Steel mesh (if gaps)"
+   ],
+   "seasons": [
+    "fall"
+   ],
+   "steps": [
+    "Look for droppings, nests, chewed wires and disturbed insulation.",
+    "Check vents and eaves for gaps bigger than a coin.",
+    "Seal gaps with mesh or foam; call pest control for an active nest."
+   ],
+   "title": "Check attic and crawlspace for pests",
+   "why": "Droppings, chewed insulation and new daylight holes in autumn mean animals are moving in for winter."
+  },
+  {
+   "category": "HVAC",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 12,
+   "id": "hvac-furnace-filter-slot",
+   "ignoreCost": 400,
+   "minutes": 20,
+   "needs": [
+    "Vacuum"
+   ],
+   "seasons": [
+    "fall"
+   ],
+   "steps": [
+    "Vacuum dust from the cabinet exterior, vents and the floor around the unit.",
+    "Move anything stored within a metre of the furnace, especially paint and solvents.",
+    "Check the area around the flue pipe is clear and dry."
+   ],
+   "title": "Deep clean the furnace area",
+   "why": "Dust and stored clutter around the furnace feed the blower and are a fire load next to a flame appliance."
+  },
+  {
+   "category": "Seasonal",
+   "difficulty": "Easy",
+   "diyCost": 10,
+   "frequencyMonths": 12,
+   "id": "seasonal-holiday-lights",
+   "ignoreCost": 0,
+   "minutes": 15,
+   "needs": [
+    "Replacement strings (if damaged)"
+   ],
+   "seasons": [
+    "winter"
+   ],
+   "steps": [
+    "Inspect every string for cracked insulation, bare wire or broken sockets and bin the bad ones.",
+    "Use outdoor-rated cords and lights outside, and keep connections off the ground.",
+    "Do not chain more sets than the packaging allows; use a timer instead of all-night running."
+   ],
+   "title": "Check holiday lights and cords",
+   "why": "Frayed light strings and overloaded extension cords are a December staple for fire crews."
+  },
+  {
+   "category": "Plumbing",
+   "difficulty": "Easy",
+   "diyCost": 8,
+   "frequencyMonths": 24,
+   "id": "plumb-hose-bibb-vacuum-breaker",
+   "ignoreCost": 700,
+   "minutes": 10,
+   "needs": [
+    "Replacement vacuum breaker (if needed)"
+   ],
+   "seasons": [
+    "spring"
+   ],
+   "steps": [
+    "Run each outdoor tap and watch the breaker cap for spraying.",
+    "Replace any breaker that sprays, drips constantly or is missing.",
+    "Confirm frost-free taps drain when shut off."
+   ],
+   "title": "Check hose bib vacuum breakers",
+   "why": "A failed vacuum breaker can siphon garden water back into the drinking supply, and a split one sprays every time the tap opens."
+  },
+  {
+   "category": "Safety",
+   "difficulty": "Easy",
+   "diyCost": 30,
+   "frequencyMonths": 60,
+   "id": "int-smoke-placement",
+   "ignoreCost": 0,
+   "minutes": 15,
+   "needs": [
+    "Additional alarms (if gaps)"
+   ],
+   "seasons": [],
+   "steps": [
+    "Confirm there is a smoke alarm inside every bedroom, outside each sleeping area, and on every level.",
+    "Add alarms where any are missing; interconnected models alert the whole house.",
+    "Confirm a CO alarm sits near sleeping areas if the home has fuel appliances or a garage."
+   ],
+   "title": "Check alarm placement coverage",
+   "why": "Alarms only in hallways miss the bedrooms where most fatal fires start; coverage, not count, is what protects sleepers."
+  }
+ ],
+ "version": 1
+}

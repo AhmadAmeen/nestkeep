@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "310170006989",
+    "project_id": "nestkeep-a73ba",
+    "storage_bucket": "nestkeep-a73ba.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:310170006989:android:88ba4e0aadf4aa41e14084",
+        "android_client_info": {
+          "package_name": "com.respawned.nestkeep"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "310170006989-o5k97rcvu9d6vlv8e7o54fu64uu3b6a2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAXhvB24FsouVxoML3Zqqk0J0U5F0Vn3M4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "310170006989-o5k97rcvu9d6vlv8e7o54fu64uu3b6a2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
