@@ -55,6 +55,10 @@ android {
 
     buildTypes {
         release {
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
             signingConfig = signingConfigs.getByName(
                 if (nestkeepKeystore.getProperty("storeFile") != null) "release" else "debug"
             )
