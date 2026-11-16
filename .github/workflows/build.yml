@@ -1,8 +1,7 @@
 # NestKeep release build — runs on GitHub Actions because the local VM's
-# network guard blocks the Gradle daemon (Java loopback). Builds a signed
-# AAB using the upload keystore stored in repo secrets:
-#   KEYSTORE_BASE64 (base64 of upload-keystore.jks)
-#   KEYSTORE_PASSWORD, KEY_PASSWORD, KEY_ALIAS
+# network guard blocks the Gradle daemon (Java loopback). The AAB is built
+# here and signed with the upload keystore locally after download, so no
+# signing secrets live in GitHub.
 name: Build NestKeep AAB
 
 on:
@@ -47,27 +46,11 @@ jobs:
           pip install pillow
           python3 tools/make_icons.py
 
-      - name: Restore upload keystore
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-        run: |
-          mkdir -p keystore
-          echo "$KEYSTORE_BASE64" | base64 -d > keystore/upload-keystore.jks
-          cat > keystore/key.properties <<KP
-          storeFile=upload-keystore.jks
-          storePassword=$KEYSTORE_PASSWORD
-          keyAlias=$KEY_ALIAS
-          keyPassword=$KEY_PASSWORD
-          KP
-
       - name: Test
         working-directory: app
         run: flutter test
 
-      - name: Build signed AAB
+      - name: Build AAB
         working-directory: app
         run: flutter build appbundle --release
 
