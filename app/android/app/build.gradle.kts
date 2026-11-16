@@ -25,6 +25,12 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
 
+    lint {
+        // Lint crashes on the firebase_core plugin sources with the
+        // current AGP/Kotlin combo; release builds skip lint checks.
+        checkReleaseBuilds = false
+    }
+
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.respawned.nestkeep"
