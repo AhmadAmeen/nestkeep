@@ -10,12 +10,14 @@ import '../sync.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import 'job_picker.dart';
+import 'plan_calendar.dart';
 import 'today.dart';
 
 /// The Plan tab: everything on the plan, grouped by urgency, plus the
-/// completed history. Custom jobs are a Pro feature (the built-in seasonal
-/// plan is free forever).
-class PlanScreen extends StatelessWidget {
+/// completed history. A List / Calendar switch sits under the summary
+/// card; the calendar shows the same jobs by date. Custom jobs are a
+/// Pro feature (the built-in seasonal plan is free forever).
+class PlanScreen extends StatefulWidget {
   final AppState state;
   final void Function(TaskInstance) onOpenTask;
   final VoidCallback onOpenPaywall;
@@ -26,6 +28,17 @@ class PlanScreen extends StatelessWidget {
     required this.onOpenTask,
     required this.onOpenPaywall,
   });
+
+  @override
+  State<PlanScreen> createState() => _PlanScreenState();
+}
+
+class _PlanScreenState extends State<PlanScreen> {
+  bool _calendar = false;
+
+  AppState get state => widget.state;
+  void Function(TaskInstance) get onOpenTask => widget.onOpenTask;
+  VoidCallback get onOpenPaywall => widget.onOpenPaywall;
 
   @override
   Widget build(BuildContext context) {
@@ -101,6 +114,38 @@ class PlanScreen extends StatelessWidget {
             ],
           ),
         ),
+        const SizedBox(height: 14),
+        SegmentedButton<bool>(
+          segments: const [
+            ButtonSegment(
+              value: false,
+              icon: Icon(Icons.view_agenda_outlined, size: 18),
+              label: Text('List'),
+            ),
+            ButtonSegment(
+              value: true,
+              icon: Icon(Icons.calendar_month_outlined, size: 18),
+              label: Text('Calendar'),
+            ),
+          ],
+          selected: {_calendar},
+          onSelectionChanged: (s) => setState(() => _calendar = s.first),
+          showSelectedIcon: false,
+          style: SegmentedButton.styleFrom(
+            selectedBackgroundColor: context.primary.withValues(alpha: 0.14),
+            selectedForegroundColor: context.primary,
+          ),
+        ),
+        if (_calendar) ...[
+          const SizedBox(height: 16),
+          PlanCalendarView(
+            tasks: state.tasks,
+            templateById: state.templateById,
+            onOpenTask: onOpenTask,
+            onDone: (t) => completeTask(state, t),
+          ),
+        ],
+        if (!_calendar) ...[
         if (overdue.isNotEmpty) ...[
           const SizedBox(height: 20),
           const SectionHeading('Overdue'),
@@ -150,45 +195,15 @@ class PlanScreen extends StatelessWidget {
           const SizedBox(height: 12),
           const SectionHeading('Completed'),
           const SizedBox(height: 10),
-          for (final t in done.take(20))
-            NkCard(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              child: Row(
-                children: [
-                  const Icon(Icons.check_circle, color: NkColors.green, size: 24),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(t.title,
-                            style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: context.navyText)),
-                        Text(
-                          'Done ${t.doneDate == null ? '' : _shortDate(t.doneDate!)}'
-                          '${t.costPaid != null && t.costPaid! > 0 ? ' · ${money(t.costPaid!)}' : ''}'
-                          '${(t.doneBy ?? '').isNotEmpty ? ' · by ${t.doneBy}' : ''}',
-                          style: TextStyle(fontSize: 13, color: context.muted),
-                        ),
-                        if ((t.doneNote ?? '').isNotEmpty)
-                          Text(
-                            t.doneNote!,
-                            style:
-                                TextStyle(fontSize: 13, color: context.muted),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          for (final t in done.take(20)) ...[
+            DoneTaskCard(task: t),
+            const SizedBox(height: 10),
+          ],
+        ],
         ],
       ],
     );
   }
-
-  String _shortDate(DateTime d) => '${d.month}/${d.day}/${d.year}';
 
   /// Open the job picker with the current ticks; on save, apply the
   /// diff (new ticks join the plan, unticked jobs leave it) and refresh.

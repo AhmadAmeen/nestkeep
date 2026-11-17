@@ -15,7 +15,7 @@ class AppDb {
     final path = p.join(dir, 'nestkeep.db');
     _db = await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onUpgrade: (db, oldVersion, newVersion) async {
         // v2 (build 5): completion details, appliance notes, and the
         // contractor book, home notes and belongings tables. Purely
@@ -34,6 +34,12 @@ class AppDb {
           await db.execute(
               'ALTER TABLE appliances ADD COLUMN lifespanYears INTEGER');
           await _createV3Tables(db);
+        }
+        // v4 (build 15): home spaces and home documents (Pro). Both
+        // local only: the doc files live on this phone, so neither
+        // table is ever synced. Additive again.
+        if (oldVersion < 4) {
+          await _createV4Tables(db);
         }
       },
       onCreate: (db, _) async {
@@ -112,9 +118,32 @@ class AppDb {
           )''');
         await _createV2Tables(db);
         await _createV3Tables(db);
+        await _createV4Tables(db);
       },
     );
     return _db!;
+  }
+
+  static Future<void> _createV4Tables(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS home_spaces(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        homeId INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        icon TEXT NOT NULL,
+        createdAt INTEGER NOT NULL,
+        updatedAt INTEGER NOT NULL
+      )''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS home_docs(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        homeId INTEGER NOT NULL,
+        spaceId INTEGER,
+        title TEXT NOT NULL,
+        filePath TEXT NOT NULL,
+        createdAt INTEGER NOT NULL,
+        updatedAt INTEGER NOT NULL
+      )''');
   }
 
   static Future<void> _createV3Tables(Database db) async {
@@ -199,6 +228,8 @@ class AppDb {
     await db.delete('contractors', where: 'homeId = ?', whereArgs: [id]);
     await db.delete('home_notes', where: 'homeId = ?', whereArgs: [id]);
     await db.delete('belongings', where: 'homeId = ?', whereArgs: [id]);
+    await db.delete('home_docs', where: 'homeId = ?', whereArgs: [id]);
+    await db.delete('home_spaces', where: 'homeId = ?', whereArgs: [id]);
     await db.delete('homes', where: 'id = ?', whereArgs: [id]);
   }
 
@@ -282,6 +313,67 @@ class AppDb {
   static Future<void> deleteApplianceFile(int id) async {
     final db = await open();
     await db.delete('appliance_files', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ---------- home spaces (Pro, local only, never synced) ----------
+  static Future<int> insertHomeSpace(HomeSpace s) async {
+    final db = await open();
+    final map = s.toMap()..remove('id');
+    return db.insert('home_spaces', map);
+  }
+
+  static Future<List<HomeSpace>> spacesForHome(int homeId) async {
+    final db = await open();
+    final rows = await db.query(
+      'home_spaces',
+      where: 'homeId = ?',
+      whereArgs: [homeId],
+      orderBy: 'createdAt',
+    );
+    return rows.map(HomeSpace.fromMap).toList();
+  }
+
+  static Future<void> updateHomeSpace(HomeSpace s) async {
+    final db = await open();
+    await db.update('home_spaces', s.toMap(),
+        where: 'id = ?', whereArgs: [s.id]);
+  }
+
+  /// Deleting a space does not delete its documents: they are refiled
+  /// under the whole home (spaceId back to NULL).
+  static Future<void> deleteHomeSpace(int id) async {
+    final db = await open();
+    await db.update('home_docs', {'spaceId': null},
+        where: 'spaceId = ?', whereArgs: [id]);
+    await db.delete('home_spaces', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ---------- home documents (Pro, local only, never synced) ----------
+  static Future<int> insertHomeDoc(HomeDoc d) async {
+    final db = await open();
+    final map = d.toMap()..remove('id');
+    return db.insert('home_docs', map);
+  }
+
+  static Future<List<HomeDoc>> docsForHome(int homeId) async {
+    final db = await open();
+    final rows = await db.query(
+      'home_docs',
+      where: 'homeId = ?',
+      whereArgs: [homeId],
+      orderBy: 'createdAt DESC',
+    );
+    return rows.map(HomeDoc.fromMap).toList();
+  }
+
+  static Future<void> updateHomeDoc(HomeDoc d) async {
+    final db = await open();
+    await db.update('home_docs', d.toMap(), where: 'id = ?', whereArgs: [d.id]);
+  }
+
+  static Future<void> deleteHomeDoc(int id) async {
+    final db = await open();
+    await db.delete('home_docs', where: 'id = ?', whereArgs: [id]);
   }
 
   // ---------- receipts ----------
@@ -451,6 +543,8 @@ class AppDb {
     await db.delete('contractors');
     await db.delete('home_notes');
     await db.delete('belongings');
+    await db.delete('home_docs');
+    await db.delete('home_spaces');
     await db.delete('homes');
     await db.delete('settings');
   }

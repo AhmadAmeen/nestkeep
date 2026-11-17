@@ -11,6 +11,7 @@ import 'appliance_detail.dart';
 import 'appliance_form.dart';
 import 'belonging_form.dart';
 import 'contractor_form.dart';
+import 'documents_section.dart';
 import 'history.dart';
 import 'note_form.dart';
 
@@ -169,7 +170,9 @@ class MyHomeScreen extends StatelessWidget {
               onOpenPaywall: onOpenPaywall),
           const SizedBox(height: 10),
         ],
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
+        DocumentsSection(state: state, onOpenPaywall: onOpenPaywall),
+        const SizedBox(height: 20),
         NkCard(
           onTap: onOpenCosts,
           child: Row(

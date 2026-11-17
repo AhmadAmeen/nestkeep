@@ -31,6 +31,8 @@ class AppState extends ChangeNotifier {
   List<Contractor> contractors = [];
   List<HomeNote> homeNotes = [];
   List<Belonging> belongings = [];
+  List<HomeSpace> spaces = [];
+  List<HomeDoc> docs = [];
   Entitlement entitlement = Entitlement.free;
   AppAccent accent = AppAccent.purple;
   AvatarDef currentAvatar = avatarById(null);
@@ -105,6 +107,8 @@ class AppState extends ChangeNotifier {
     contractors = await AppDb.contractorsForHome(id);
     homeNotes = await AppDb.homeNotesForHome(id);
     belongings = await AppDb.belongingsForHome(id);
+    spaces = await AppDb.spacesForHome(id);
+    docs = await AppDb.docsForHome(id);
     await _updateBadgeCelebrations();
     notifyListeners();
   }

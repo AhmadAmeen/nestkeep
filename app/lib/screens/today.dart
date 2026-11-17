@@ -731,3 +731,47 @@ class _BounceOnIncreaseState extends State<_BounceOnIncrease>
     return ScaleTransition(scale: _scale, child: widget.child);
   }
 }
+
+/// One finished job, the way Plan's Completed section shows it: green
+/// check, title, when it was done and what it cost. Shared with the
+/// Plan calendar so a done job looks the same wherever it lands.
+class DoneTaskCard extends StatelessWidget {
+  final TaskInstance task;
+
+  const DoneTaskCard({super.key, required this.task});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = task;
+    return NkCard(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          const Icon(Icons.check_circle, color: NkColors.green, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(t.title,
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600, color: context.navyText)),
+                Text(
+                  'Done ${t.doneDate == null ? '' : '${t.doneDate!.month}/${t.doneDate!.day}/${t.doneDate!.year}'}'
+                  '${t.costPaid != null && t.costPaid! > 0 ? ' · ${money(t.costPaid!)}' : ''}'
+                  '${(t.doneBy ?? '').isNotEmpty ? ' · by ${t.doneBy}' : ''}',
+                  style: TextStyle(fontSize: 13, color: context.muted),
+                ),
+                if ((t.doneNote ?? '').isNotEmpty)
+                  Text(
+                    t.doneNote!,
+                    style: TextStyle(fontSize: 13, color: context.muted),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

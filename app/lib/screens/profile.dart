@@ -346,7 +346,7 @@ class ProfileScreen extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'NestKeep 1.3.2 · Made to be kept: no ads, no selling data, your home data lives on your phone.',
+          'NestKeep 1.4.0 · Made to be kept: no ads, no selling data, your home data lives on your phone.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 12.5, color: context.muted),
         ),

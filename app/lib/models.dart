@@ -308,6 +308,116 @@ class ApplianceFile {
       );
 }
 
+/// A part of the home the user names: Kitchen, Bathroom, Garden…
+/// Documents are filed under a space, or under the whole home.
+/// Local only in v1 (see [HomeDoc]).
+class HomeSpace {
+  final int? id;
+  final int homeId;
+  final String name;
+  final String icon; // a key into spaceIcons, not a code point
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  HomeSpace({
+    this.id,
+    required this.homeId,
+    required this.name,
+    required this.icon,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  Map<String, Object?> toMap() => {
+        'id': id,
+        'homeId': homeId,
+        'name': name,
+        'icon': icon,
+        'createdAt': createdAt.millisecondsSinceEpoch,
+        'updatedAt': updatedAt.millisecondsSinceEpoch,
+      };
+
+  factory HomeSpace.fromMap(Map<String, Object?> m) => HomeSpace(
+        id: m['id'] as int?,
+        homeId: m['homeId'] as int,
+        name: m['name'] as String,
+        icon: m['icon'] as String,
+        createdAt:
+            DateTime.fromMillisecondsSinceEpoch(m['createdAt'] as int),
+        updatedAt:
+            DateTime.fromMillisecondsSinceEpoch(m['updatedAt'] as int),
+      );
+
+  HomeSpace copyWith({String? name, String? icon, DateTime? updatedAt}) =>
+      HomeSpace(
+        id: id,
+        homeId: homeId,
+        name: name ?? this.name,
+        icon: icon ?? this.icon,
+        createdAt: createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+}
+
+/// A photo of one of the home's papers: the deed, the insurance policy,
+/// a manual page. A Pro feature. The file lives in the app's documents
+/// folder on this phone only and is never synced, the same rule as
+/// receipt photos and appliance attachments; the space it is filed
+/// under stays local too, for the same reason.
+class HomeDoc {
+  final int? id;
+  final int homeId;
+  final int? spaceId; // null = filed under the whole home
+  final String title;
+  final String filePath;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  HomeDoc({
+    this.id,
+    required this.homeId,
+    this.spaceId,
+    required this.title,
+    required this.filePath,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  Map<String, Object?> toMap() => {
+        'id': id,
+        'homeId': homeId,
+        'spaceId': spaceId,
+        'title': title,
+        'filePath': filePath,
+        'createdAt': createdAt.millisecondsSinceEpoch,
+        'updatedAt': updatedAt.millisecondsSinceEpoch,
+      };
+
+  factory HomeDoc.fromMap(Map<String, Object?> m) => HomeDoc(
+        id: m['id'] as int?,
+        homeId: m['homeId'] as int,
+        spaceId: m['spaceId'] as int?,
+        title: m['title'] as String,
+        filePath: m['filePath'] as String,
+        createdAt:
+            DateTime.fromMillisecondsSinceEpoch(m['createdAt'] as int),
+        updatedAt:
+            DateTime.fromMillisecondsSinceEpoch(m['updatedAt'] as int),
+      );
+
+  HomeDoc copyWith({String? title, int? spaceId, bool clearSpace = false,
+          DateTime? updatedAt}) =>
+      HomeDoc(
+        id: id,
+        homeId: homeId,
+        spaceId: clearSpace ? null : (spaceId ?? this.spaceId),
+        title: title ?? this.title,
+        filePath: filePath,
+        createdAt: createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+}
+
 /// A trusted pro the user calls: plumber, electrician, HVAC tech.
 /// Pure local data, like everything else in the app.
 class Contractor {
