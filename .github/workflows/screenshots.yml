@@ -1,5 +1,5 @@
 # NestKeep store screenshots — boots an Android emulator on GitHub Actions,
-# installs a debug build of the real app, walks onboarding and captures the
+# installs a release build of the real app, walks onboarding and captures the
 # main screens. Manual trigger only.
 name: NestKeep screenshots
 
@@ -45,9 +45,9 @@ jobs:
           pip install pillow
           python3 tools/make_icons.py
 
-      - name: Build debug APK
+      - name: Build release
         working-directory: app
-        run: flutter build apk --debug
+        run: flutter build apk --release
 
       - name: Run app on emulator and capture screenshots
         uses: reactivecircus/android-emulator-runner@v2
@@ -58,7 +58,7 @@ jobs:
           profile: pixel_7
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
-          script: python3 tools/screenshot_run.py app/build/app/outputs/flutter-apk/app-debug.apk
+          script: python3 tools/screenshot_run.py app/build/app/outputs/flutter-apk/app-release.apk
 
       - name: Upload screenshots
         if: always()
