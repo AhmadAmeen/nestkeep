@@ -7,30 +7,51 @@ import '../models.dart';
 import '../plan.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import '../widgets/animated_check.dart';
 
 /// The task guide: why it matters, what it costs either way, the steps and
 /// what you need. No shopping links anywhere, by design.
-class TaskDetailScreen extends StatelessWidget {
+class TaskDetailScreen extends StatefulWidget {
   final AppState state;
   final TaskInstance task;
 
   const TaskDetailScreen({super.key, required this.state, required this.task});
 
+  @override
+  State<TaskDetailScreen> createState() => _TaskDetailScreenState();
+}
+
+class _TaskDetailScreenState extends State<TaskDetailScreen> {
+  /// True between the done dialog's confirm and the pop back: the
+  /// action area shows the drawing tick instead of the buttons.
+  bool _completing = false;
+
+  AppState get state => widget.state;
+  TaskInstance get task => widget.task;
+
   TaskTemplate? get tpl =>
       task.templateId == null ? null : state.templateById[task.templateId];
 
   Future<void> _markDone(BuildContext context) async {
+    if (_completing) return;
     final result = await showDialog<_DoneResult>(
       context: context,
       builder: (_) => const _DoneDialog(),
     );
-    if (result == null && !context.mounted) return;
+    // Dismissing the dialog without saving is a cancel: nothing is
+    // completed and nothing animates.
+    if (result == null || !context.mounted) return;
+    setState(() => _completing = true);
+    // Let the tick draw itself before the completion lands and the
+    // screen pops back to the list.
+    await Future<void>.delayed(const Duration(milliseconds: 650));
+    if (!mounted) return;
     await completeTask(
       state,
       task,
-      costPaid: result?.cost,
-      doneBy: result?.doneBy,
-      doneNote: result?.note,
+      costPaid: result.cost,
+      doneBy: result.doneBy,
+      doneNote: result.note,
     );
     if (context.mounted) Navigator.of(context).pop();
   }
@@ -231,30 +252,37 @@ class TaskDetailScreen extends StatelessWidget {
                   style: TextStyle(color: context.muted)),
             ),
           const SizedBox(height: 20),
-          FilledButton.icon(
-            onPressed: () => _markDone(context),
-            icon: const Icon(Icons.check),
-            label: const Text('Mark done'),
-          ),
+          if (_completing)
+            const Center(child: AnimatedCheck(size: 54))
+          else
+            FilledButton.icon(
+              onPressed: () => _markDone(context),
+              icon: const Icon(Icons.check),
+              label: const Text('Mark done'),
+            ),
           const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () async {
-                    await snoozeTask(state, task, 7);
-                    if (context.mounted) Navigator.of(context).pop();
-                  },
+                  onPressed: _completing
+                      ? null
+                      : () async {
+                          await snoozeTask(state, task, 7);
+                          if (context.mounted) Navigator.of(context).pop();
+                        },
                   child: const Text('Remind in a week'),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () async {
-                    await skipTask(state, task);
-                    if (context.mounted) Navigator.of(context).pop();
-                  },
+                  onPressed: _completing
+                      ? null
+                      : () async {
+                          await skipTask(state, task);
+                          if (context.mounted) Navigator.of(context).pop();
+                        },
                   child: const Text('Skip this time'),
                 ),
               ),
@@ -262,20 +290,22 @@ class TaskDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           OutlinedButton.icon(
-            onPressed: () async {
-              final ok = await addJobToCalendar(
-                title: task.title,
-                dueDate: task.dueDate,
-                description: jobDescription(task, tpl),
-              );
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text(ok
-                      ? 'Opening your calendar. The job is prefilled; you save it there.'
-                      : 'No calendar app found on this phone.'),
-                ));
-              }
-            },
+            onPressed: _completing
+                ? null
+                : () async {
+                    final ok = await addJobToCalendar(
+                      title: task.title,
+                      dueDate: task.dueDate,
+                      description: jobDescription(task, tpl),
+                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text(ok
+                            ? 'Opening your calendar. The job is prefilled; you save it there.'
+                            : 'No calendar app found on this phone.'),
+                      ));
+                    }
+                  },
             icon: const Icon(Icons.event_outlined, size: 19),
             label: const Text('Add to calendar'),
           ),

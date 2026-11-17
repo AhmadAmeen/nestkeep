@@ -14,17 +14,24 @@ class NkCard extends StatelessWidget {
   final VoidCallback? onTap;
   final Color? accentLeft;
 
+  /// Optional card background override (e.g. the light green tint a
+  /// task card wears while its completion animation plays). Null keeps
+  /// the theme's card colour.
+  final Color? color;
+
   const NkCard({
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(16),
     this.onTap,
     this.accentLeft,
+    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
     final card = Card(
+      color: color,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),

@@ -5,6 +5,7 @@ import '../app_state.dart';
 import '../models.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import '../widgets/animated_check.dart';
 import 'score_detail.dart';
 
 /// The Today screen: the approved front-page grid. One card per job,
@@ -231,68 +232,15 @@ class TodayScreen extends StatelessWidget {
         if (state.upcoming.isNotEmpty) ...[
           Builder(builder: (context) {
             final next = state.upcoming.first;
-            final tpl = next.templateId == null
-                ? null
-                : state.templateById[next.templateId];
-            return NkCard(
+            return _NextUpCard(
+              task: next,
+              minutes: next.templateId == null
+                  ? null
+                  : state.templateById[next.templateId]?.minutes,
+              now: now,
               onTap: () => onOpenTask(next),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'NEXT UP',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.8,
-                      color: context.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    next.title,
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      color: context.navyText,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${dueLabel(next, now)}'
-                    '${tpl != null ? ' · ~${tpl.minutes} min' : ''}',
-                    style: TextStyle(fontSize: 13.5, color: context.muted),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: FilledButton(
-                          onPressed: () => onQuickDone(next),
-                          style: FilledButton.styleFrom(
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 11),
-                            textStyle: const TextStyle(fontSize: 15),
-                          ),
-                          child: const Text('Mark done'),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => snoozeTask(state, next, 1),
-                          style: OutlinedButton.styleFrom(
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 11),
-                            textStyle: const TextStyle(fontSize: 15),
-                          ),
-                          child: const Text('Later'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+              onDone: onQuickDone,
+              onLater: () => snoozeTask(state, next, 1),
             );
           }),
           const SizedBox(height: 12),
@@ -332,30 +280,33 @@ class TodayScreen extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: NkCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.check_circle_outline,
-                            color: NkColors.green, size: 20),
-                        const SizedBox(width: 6),
-                        Text('Completed',
-                            style: TextStyle(
-                                fontSize: 13.5, color: context.muted)),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '${health.completedCount}',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                        color: context.navyText,
+              child: _BounceOnIncrease(
+                value: health.completedCount,
+                child: NkCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.check_circle_outline,
+                              color: NkColors.green, size: 20),
+                          const SizedBox(width: 6),
+                          Text('Completed',
+                              style: TextStyle(
+                                  fontSize: 13.5, color: context.muted)),
+                        ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 6),
+                      Text(
+                        '${health.completedCount}',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          color: context.navyText,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -424,7 +375,12 @@ class TodayScreen extends StatelessWidget {
 /// One task, one card: icon tile, title, due label, quick-done circle.
 /// [minutes] is the library job's typical duration when known; the
 /// Plan passes it so rows can say how long a job takes.
-class TaskCard extends StatelessWidget {
+///
+/// Tapping the quick-done circle does not complete the task at once:
+/// a tick draws itself in place of the button, the card tints green
+/// and glides away, and only then is [onDone] invoked, so the state
+/// reload finds the row already visually gone instead of snapping.
+class TaskCard extends StatefulWidget {
   final TaskInstance task;
   final VoidCallback onTap;
   final VoidCallback onDone;
@@ -439,12 +395,68 @@ class TaskCard extends StatelessWidget {
   });
 
   @override
+  State<TaskCard> createState() => _TaskCardState();
+}
+
+class _TaskCardState extends State<TaskCard>
+    with SingleTickerProviderStateMixin {
+  bool _completing = false;
+  bool _fired = false;
+
+  late final AnimationController _collapse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 300),
+  );
+  late final Animation<double> _shrink = Tween<double>(begin: 1, end: 0)
+      .animate(CurvedAnimation(parent: _collapse, curve: Curves.easeInOut));
+  late final Animation<double> _fade = Tween<double>(begin: 1, end: 0)
+      .animate(CurvedAnimation(parent: _collapse, curve: Curves.easeIn));
+  late final Animation<Offset> _slide =
+      Tween<Offset>(begin: Offset.zero, end: const Offset(0.08, -0.05))
+          .animate(CurvedAnimation(parent: _collapse, curve: Curves.easeIn));
+
+  @override
+  void initState() {
+    super.initState();
+    _collapse.addStatusListener((status) {
+      if (status == AnimationStatus.completed) _fire();
+    });
+  }
+
+  @override
+  void dispose() {
+    _collapse.dispose();
+    super.dispose();
+  }
+
+  void _startComplete() {
+    if (_completing) return;
+    setState(() => _completing = true);
+  }
+
+  void _onCheckDrawn() {
+    if (!mounted) return;
+    _collapse.forward();
+  }
+
+  void _fire() {
+    if (!mounted || _fired) return;
+    _fired = true;
+    widget.onDone();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final task = widget.task;
     final now = DateTime.now();
     final overdue = task.isOverdue(now);
     final color = categoryColor(task.category);
-    return NkCard(
-      onTap: onTap,
+    final card = NkCard(
+      onTap: _completing ? null : widget.onTap,
+      color: _completing
+          ? NkColors.green
+              .withValues(alpha: context.isDark ? 0.22 : 0.12)
+          : null,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(
         children: [
@@ -473,7 +485,7 @@ class TaskCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   '${dueLabel(task, now)}'
-                  '${minutes != null ? ' · ~$minutes min' : ''}',
+                  '${widget.minutes != null ? ' · ~${widget.minutes} min' : ''}',
                   style: TextStyle(
                     fontSize: 13,
                     color: overdue ? NkColors.red : context.muted,
@@ -483,14 +495,235 @@ class TaskCard extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.check_circle_outline, size: 28),
-            color: NkColors.green,
-            tooltip: 'Mark done',
-            onPressed: onDone,
-          ),
+          if (_completing)
+            SizedBox(
+              width: 48,
+              height: 48,
+              child: Center(
+                child: AnimatedCheck(size: 36, onCompleted: _onCheckDrawn),
+              ),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.check_circle_outline, size: 28),
+              color: NkColors.green,
+              tooltip: 'Mark done',
+              onPressed: _startComplete,
+            ),
         ],
       ),
     );
+    return SizeTransition(
+      sizeFactor: _shrink,
+      alignment: Alignment.topCenter,
+      child: FadeTransition(
+        opacity: _fade,
+        child: SlideTransition(position: _slide, child: card),
+      ),
+    );
+  }
+}
+
+/// The Next up card. Mark done plays the same tick in place of the
+/// buttons before the completion is applied; when the following task
+/// takes over, the content cross-fades instead of snapping.
+class _NextUpCard extends StatefulWidget {
+  final TaskInstance task;
+  final int? minutes;
+  final DateTime now;
+  final VoidCallback onTap;
+  final Future<void> Function(TaskInstance) onDone;
+  final VoidCallback onLater;
+
+  const _NextUpCard({
+    required this.task,
+    required this.minutes,
+    required this.now,
+    required this.onTap,
+    required this.onDone,
+    required this.onLater,
+  });
+
+  @override
+  State<_NextUpCard> createState() => _NextUpCardState();
+}
+
+class _NextUpCardState extends State<_NextUpCard> {
+  bool _completing = false;
+  bool _fired = false;
+
+  @override
+  void didUpdateWidget(_NextUpCard old) {
+    super.didUpdateWidget(old);
+    // A different task slid into the Next up slot (the completed one
+    // rolled forward): start its card fresh.
+    if (old.task.id != widget.task.id ||
+        old.task.dueDate != widget.task.dueDate) {
+      _completing = false;
+      _fired = false;
+    }
+  }
+
+  void _startComplete() {
+    if (_completing) return;
+    setState(() => _completing = true);
+  }
+
+  void _onCheckDrawn() {
+    if (!mounted || _fired) return;
+    _fired = true;
+    widget.onDone(widget.task);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final next = widget.task;
+    return NkCard(
+      onTap: _completing ? null : widget.onTap,
+      color: _completing
+          ? NkColors.green.withValues(alpha: context.isDark ? 0.22 : 0.12)
+          : null,
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 250),
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        transitionBuilder: (child, animation) => FadeTransition(
+          opacity: animation,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 0.06),
+              end: Offset.zero,
+            ).animate(animation),
+            child: child,
+          ),
+        ),
+        child: Column(
+          key: ValueKey(next.id),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'NEXT UP',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
+                color: context.primary,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              next.title,
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: context.navyText,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              '${dueLabel(next, widget.now)}'
+              '${widget.minutes != null ? ' · ~${widget.minutes} min' : ''}',
+              style: TextStyle(fontSize: 13.5, color: context.muted),
+            ),
+            const SizedBox(height: 12),
+            if (_completing)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    AnimatedCheck(size: 44, onCompleted: _onCheckDrawn),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Done',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: context.navyText,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: _startComplete,
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 11),
+                        textStyle: const TextStyle(fontSize: 15),
+                      ),
+                      child: const Text('Mark done'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: widget.onLater,
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 11),
+                        textStyle: const TextStyle(fontSize: 15),
+                      ),
+                      child: const Text('Later'),
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Scales its child with a small bounce (1.0 -> 1.06 -> 1.0) whenever
+/// [value] increases: the Completed card's way of showing a finished
+/// task landing in the done list.
+class _BounceOnIncrease extends StatefulWidget {
+  final int value;
+  final Widget child;
+
+  const _BounceOnIncrease({required this.value, required this.child});
+
+  @override
+  State<_BounceOnIncrease> createState() => _BounceOnIncreaseState();
+}
+
+class _BounceOnIncreaseState extends State<_BounceOnIncrease>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 350),
+  );
+  late final Animation<double> _scale = TweenSequence<double>([
+    TweenSequenceItem(
+      tween: Tween<double>(begin: 1, end: 1.06)
+          .chain(CurveTween(curve: Curves.easeOut)),
+      weight: 40,
+    ),
+    TweenSequenceItem(
+      tween: Tween<double>(begin: 1.06, end: 1)
+          .chain(CurveTween(curve: Curves.easeInOut)),
+      weight: 60,
+    ),
+  ]).animate(_controller);
+
+  @override
+  void didUpdateWidget(_BounceOnIncrease old) {
+    super.didUpdateWidget(old);
+    if (widget.value > old.value) _controller.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(scale: _scale, child: widget.child);
   }
 }
