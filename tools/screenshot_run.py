@@ -56,32 +56,47 @@ def _attr(tag, name):
     return m.group(1) if m else ""
 
 
-def find(xml, text, min_y=0):
-    """Center point of the first node whose label contains text.
+def find(xml, text, min_y=0, exact=False):
+    """Center point of the best node whose label contains text.
 
     Each <node> tag is parsed on its own: Flutter puts labels in
     content-desc with text="" empty, and a single regex spanning both
     attributes matches text="" first and swallows the node (the bug that
     sank the v1/v2 runs), so the attributes are read per-tag here.
+
+    Among matches, the SHORTEST label wins: the notification dialog title
+    "Allow NestKeep to send you notifications?" contains "Allow" and sits
+    earlier in the tree than the Allow button, so first-match tapped the
+    title and the dialog stayed up (the v3 run's failure). With exact=True
+    only a node whose whole label equals text matches.
     """
+    best = None  # (label_length, cx, cy)
     for m in NODE_RE.finditer(xml):
         tag = m.group(0)
         label = _attr(tag, "content-desc") or _attr(tag, "text")
         if not label:
             continue
+        if exact:
+            if label.strip() != text:
+                continue
+        elif text.lower() not in label.lower():
+            continue
         b = BOUNDS_RE.search(tag)
         if not b:
             continue
         x1, y1, x2, y2 = map(int, b.groups())
-        if text.lower() in label.lower() and y1 >= min_y:
-            return ((x1 + x2) // 2, (y1 + y2) // 2)
-    return None
+        if y1 < min_y:
+            continue
+        cand = (len(label), (x1 + x2) // 2, (y1 + y2) // 2)
+        if best is None or cand[0] < best[0]:
+            best = cand
+    return (best[1], best[2]) if best else None
 
 
-def tap_text(text, timeout=30, required=True, min_y=0):
+def tap_text(text, timeout=30, required=True, min_y=0, exact=False):
     end = time.time() + timeout
     while time.time() < end:
-        p = find(dump(), text, min_y=min_y)
+        p = find(dump(), text, min_y=min_y, exact=exact)
         if p:
             adb("shell", "input", "tap", str(p[0]), str(p[1]))
             print(f"tapped '{text}' at {p}", flush=True)
@@ -183,7 +198,7 @@ def main():
     time.sleep(4)
 
     # Notification permission dialog (either answer is fine for screenshots).
-    tap_text("Allow", timeout=8, required=False)
+    tap_text("Allow", timeout=8, required=False, exact=True)
     time.sleep(3)
 
     # Bottom nav lives in the bottom ~15% of the 2160px-tall screen.
