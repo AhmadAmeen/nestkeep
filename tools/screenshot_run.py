@@ -32,9 +32,18 @@ def adb(*args, binary=False):
 
 
 def dump():
-    adb("shell", "uiautomator", "dump", "/sdcard/window_dump.xml")
-    r = adb("exec-out", "cat", "/sdcard/window_dump.xml")
-    return r.stdout or ""
+    """UI hierarchy XML. uiautomator intermittently returns only the bare
+    native shell (no Flutter semantics nodes at all) when it queries
+    mid-frame; if the result has no labelled nodes, wait and dump again."""
+    xml = ""
+    for _ in range(3):
+        adb("shell", "uiautomator", "dump", "/sdcard/window_dump.xml")
+        r = adb("exec-out", "cat", "/sdcard/window_dump.xml")
+        xml = r.stdout or ""
+        if 'content-desc="' in xml and len(xml) > 3000:
+            break
+        time.sleep(2)
+    return xml
 
 
 def visible_texts(xml):
@@ -202,9 +211,22 @@ def main():
     time.sleep(3)
 
     # Bottom nav lives in the bottom ~15% of the 2160px-tall screen.
+    # Poll for it: a single dump can catch the shell before Flutter has
+    # published its semantics tree (the v4 run failed exactly here, with
+    # the nav plainly visible in its own failure screenshot).
     nav_min_y = 1800
-    if not find(dump(), "Today", min_y=nav_min_y):
+    end = time.time() + 45
+    while time.time() < end:
+        if find(dump(), "Today", min_y=nav_min_y):
+            break
+        time.sleep(3)
+    else:
         fail("main screen with bottom nav never appeared")
+
+    # Wait for the dashboard body itself, not just the nav, so the shot
+    # is the real Today screen and not a blank loading frame.
+    if wait_for_text("Welcome home", timeout=45) is None:
+        fail("Today dashboard content never appeared")
 
     shot("01-today.png")
     tap_text("Plan", min_y=nav_min_y)
