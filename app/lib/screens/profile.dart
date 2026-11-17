@@ -343,7 +343,7 @@ class ProfileScreen extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'NestKeep 1.1.1 · Made to be kept: no ads, no selling data, your home data lives on your phone.',
+          'NestKeep 1.2.0 · Made to be kept: no ads, no selling data, your home data lives on your phone.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 12.5, color: context.muted),
         ),
@@ -534,8 +534,8 @@ class _BadgesCard extends StatelessWidget {
   }
 }
 
-/// The app-colour picker: blue, orange or pink, worn by the whole app
-/// in light and dark alike.
+/// The app-colour picker: indigo, purple or plum (one close family),
+/// worn by the whole app in light and dark alike.
 class _ColourCard extends StatelessWidget {
   final AppState state;
 

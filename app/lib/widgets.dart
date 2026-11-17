@@ -268,7 +268,9 @@ Color categoryColor(String category) {
     case 'HVAC':
       return const Color(0xFFEF7D1A);
     case 'Plumbing':
-      return const Color(0xFF2456D6);
+      // Indigo, in the purple accent family (was the old royal blue
+      // #2456D6 before build 11 unified the palette).
+      return const Color(0xFF5457E8);
     case 'Roof & Gutters':
       return const Color(0xFF7A5AF8);
     case 'Exterior':

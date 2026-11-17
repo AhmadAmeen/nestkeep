@@ -58,13 +58,20 @@ void main() {
     expect(find.text('Step 4 of 6'), findsOneWidget);
     expect(find.text('Winters where you live?'), findsOneWidget);
 
-    // Forward to the job picker: the jobs that fit the default answers
-    // come pre-ticked (2 of 3; the pool job waits unticked), and nothing
+    // Forward past the features step: the "Finding jobs for you"
+    // loader plays first (not a numbered step), then the picker.
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Next'));
+    await tester.pump();
+    expect(find.text('Finding jobs for you'), findsOneWidget);
+    expect(find.text('Looking at your home\'s systems'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 3600));
+    await tester.pumpAndSettle();
+
+    // The job picker: the jobs that fit the default answers come
+    // pre-ticked (2 of 3; the pool job waits unticked), and nothing
     // enters the plan until the user builds it from their ticks.
-    await tester.tap(find.text('Next'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Next'));
-    await tester.pumpAndSettle();
     expect(find.text('Step 6 of 6'), findsOneWidget);
     expect(find.text('Choose your jobs'), findsOneWidget);
     expect(
@@ -75,6 +82,14 @@ void main() {
     expect(find.text('2 of 3 on'), findsOneWidget);
     expect(find.text('Build my plan · 2 jobs'), findsOneWidget);
     expect(find.text('Next'), findsNothing);
+
+    // Groups start collapsed to their heading: no job rows yet, just
+    // the hint line. Tapping the heading opens the group.
+    expect(find.text('Tap to see sub tasks'), findsOneWidget);
+    expect(find.text('hvac-filter'), findsNothing);
+    await tester.tap(find.text('HVAC'));
+    await tester.pumpAndSettle();
+    expect(find.text('hvac-filter'), findsOneWidget);
 
     // Tapping a job row expands its steps as the subtask list.
     await tester.tap(find.text('hvac-filter'));

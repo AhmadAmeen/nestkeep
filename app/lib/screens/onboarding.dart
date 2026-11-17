@@ -6,6 +6,7 @@ import '../models.dart';
 import '../plan.dart';
 import '../reminders.dart';
 import '../theme.dart';
+import 'finding_jobs.dart';
 import 'job_picker.dart';
 
 /// First-run setup as a step wizard: one question focus per step, then
@@ -48,6 +49,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   String _climate = 'mild';
   bool _building = false;
   int _step = 0;
+
+  /// True while the "Finding jobs for you" loader covers the wizard,
+  /// between the last question step and the job picker. The loader is
+  /// not a numbered step: the progress chrome hides behind it.
+  bool _showFinder = false;
+
+  void _startFinder() => setState(() => _showFinder = true);
+
+  void _finderDone() {
+    setState(() => _showFinder = false);
+    _goTo(_stepCount - 1);
+  }
 
   /// The user's own ticks on the final step. Null until they change
   /// anything: before that, the picker follows the answers and pre-ticks
@@ -130,207 +143,226 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            // Progress chrome: "Step X of 6" plus a progress bar.
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Step ${_step + 1} of $_stepCount',
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: context.muted),
-                  ),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: (_step + 1) / _stepCount,
-                      minHeight: 6,
-                      backgroundColor: context.line,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: PageView(
-                controller: _pages,
-                physics: const NeverScrollableScrollPhysics(),
-                onPageChanged: (i) => setState(() => _step = i),
-                children: [
-                  _stepPage([
-                    Image.asset('assets/icon.png', width: 64, height: 64),
-                    const SizedBox(height: 16),
-                    _headline('Welcome home.'),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Answer a few questions and NestKeep builds your '
-                      'home\'s full maintenance plan. No account needed, ever.',
-                      style: TextStyle(
-                          color: context.muted, height: 1.45, fontSize: 15),
-                    ),
-                    const SizedBox(height: 24),
-                    TextField(
-                      controller: _name,
-                      decoration:
-                          const InputDecoration(labelText: 'Home name'),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _address,
-                      decoration: const InputDecoration(
-                          labelText: 'Address line (just for your header)'),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _year,
-                      keyboardType: TextInputType.number,
-                      decoration:
-                          const InputDecoration(labelText: 'Year built'),
-                    ),
-                  ]),
-                  _stepPage([
-                    _headline('What kind of home?'),
-                    _chips(
-                      value: _type,
-                      options: const [
-                        ('house', 'House'),
-                        ('townhouse', 'Townhouse'),
-                        ('condo', 'Condo'),
-                        ('apartment', 'Apartment'),
-                      ],
-                      onChanged: (v) => setState(() => _type = v),
-                    ),
-                  ]),
-                  _stepPage([
-                    _headline('Heating and cooling'),
-                    _question('How is it heated?'),
-                    _chips(
-                      value: _heating,
-                      options: const [
-                        ('forced_air', 'Forced air furnace'),
-                        ('heat_pump', 'Heat pump'),
-                        ('boiler', 'Boiler / radiators'),
-                        ('none', 'Other / none'),
-                      ],
-                      onChanged: (v) => setState(() => _heating = v),
-                    ),
-                    const SizedBox(height: 22),
-                    _question('How is it cooled?'),
-                    _chips(
-                      value: _cooling,
-                      options: const [
-                        ('central', 'Central AC'),
-                        ('window', 'Window units'),
-                        ('none', 'No AC'),
-                      ],
-                      onChanged: (v) => setState(() => _cooling = v),
-                    ),
-                  ]),
-                  _stepPage([
-                    _headline('Winters where you live?'),
-                    _chips(
-                      value: _climate,
-                      options: const [
-                        ('cold', 'Freezing cold'),
-                        ('mild', 'Mild'),
-                        ('hot', 'Rarely cold'),
-                      ],
-                      onChanged: (v) => setState(() => _climate = v),
-                    ),
-                  ]),
-                  _stepPage([
-                    _headline('What does it have?'),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _toggle('Basement / crawlspace', _basement,
-                            (v) => setState(() => _basement = v)),
-                        _toggle('Garage', _garage,
-                            (v) => setState(() => _garage = v)),
-                        _toggle('Deck / patio', _deck,
-                            (v) => setState(() => _deck = v)),
-                        _toggle('Sprinkler system', _sprinklers,
-                            (v) => setState(() => _sprinklers = v)),
-                        _toggle('Water softener', _softener,
-                            (v) => setState(() => _softener = v)),
-                        _toggle('Fireplace / chimney', _chimney,
-                            (v) => setState(() => _chimney = v)),
-                        _toggle('Pool / hot tub', _pool,
-                            (v) => setState(() => _pool = v)),
-                        _toggle('Septic system', _septic,
-                            (v) => setState(() => _septic = v)),
-                        _toggle('Well water', _well,
-                            (v) => setState(() => _well = v)),
-                        _toggle('Solar panels', _solar,
-                            (v) => setState(() => _solar = v)),
-                        _toggle('Standby generator', _generator,
-                            (v) => setState(() => _generator = v)),
-                        _toggle('EV charger', _evCharger,
-                            (v) => setState(() => _evCharger = v)),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      'Next you pick exactly which jobs go into your plan. '
-                      'Nothing is added on its own: we pre-tick the jobs '
-                      'that fit your answers, and you untick anything you '
-                      'do not want.',
-                      style: TextStyle(
-                          color: context.muted, fontSize: 13, height: 1.4),
-                    ),
-                  ]),
-                  _jobsStep(),
-                ],
-              ),
-            ),
-            // Bottom navigation row: Back (from step 2 on) and Next,
-            // replaced by the build button on the last step.
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-              child: Row(
-                children: [
-                  if (_step > 0)
-                    TextButton(
-                      onPressed: _building ? null : () => _goTo(_step - 1),
-                      child: const Text('Back'),
-                    ),
-                  const Spacer(),
-                  if (_last)
-                    FilledButton(
-                      onPressed: _building || _effectiveSelection.isEmpty
-                          ? null
-                          : _build,
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 26, vertical: 13),
-                        textStyle: const TextStyle(
-                            fontSize: 15.5, fontWeight: FontWeight.w700),
+            Column(
+              children: [
+                // Progress chrome: "Step X of 6" plus a progress bar.
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Step ${_step + 1} of $_stepCount',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: context.muted),
                       ),
-                      child: Text(_building
-                          ? 'Building your plan…'
-                          : 'Build my plan · ${_effectiveSelection.length} jobs'),
-                    )
-                  else
-                    FilledButton(
-                      onPressed: () => _goTo(_step + 1),
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 26, vertical: 13),
-                        textStyle: const TextStyle(
-                            fontSize: 15.5, fontWeight: FontWeight.w700),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: (_step + 1) / _stepCount,
+                          minHeight: 6,
+                          backgroundColor: context.line,
+                        ),
                       ),
-                      child: const Text('Next'),
-                    ),
-                ],
-              ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: PageView(
+                    controller: _pages,
+                    physics: const NeverScrollableScrollPhysics(),
+                    onPageChanged: (i) => setState(() => _step = i),
+                    children: [
+                      _stepPage([
+                        Image.asset('assets/icon.png', width: 64, height: 64),
+                        const SizedBox(height: 16),
+                        _headline('Welcome home.'),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Answer a few questions and NestKeep builds your '
+                          'home\'s full maintenance plan. No account needed, ever.',
+                          style: TextStyle(
+                              color: context.muted, height: 1.45, fontSize: 15),
+                        ),
+                        const SizedBox(height: 24),
+                        TextField(
+                          controller: _name,
+                          decoration:
+                              const InputDecoration(labelText: 'Home name'),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _address,
+                          decoration: const InputDecoration(
+                              labelText: 'Address line (just for your header)'),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _year,
+                          keyboardType: TextInputType.number,
+                          decoration:
+                              const InputDecoration(labelText: 'Year built'),
+                        ),
+                      ]),
+                      _stepPage([
+                        _headline('What kind of home?'),
+                        _chips(
+                          value: _type,
+                          options: const [
+                            ('house', 'House'),
+                            ('townhouse', 'Townhouse'),
+                            ('condo', 'Condo'),
+                            ('apartment', 'Apartment'),
+                          ],
+                          onChanged: (v) => setState(() => _type = v),
+                        ),
+                      ]),
+                      _stepPage([
+                        _headline('Heating and cooling'),
+                        _question('How is it heated?'),
+                        _chips(
+                          value: _heating,
+                          options: const [
+                            ('forced_air', 'Forced air furnace'),
+                            ('heat_pump', 'Heat pump'),
+                            ('boiler', 'Boiler / radiators'),
+                            ('none', 'Other / none'),
+                          ],
+                          onChanged: (v) => setState(() => _heating = v),
+                        ),
+                        const SizedBox(height: 22),
+                        _question('How is it cooled?'),
+                        _chips(
+                          value: _cooling,
+                          options: const [
+                            ('central', 'Central AC'),
+                            ('window', 'Window units'),
+                            ('none', 'No AC'),
+                          ],
+                          onChanged: (v) => setState(() => _cooling = v),
+                        ),
+                      ]),
+                      _stepPage([
+                        _headline('Winters where you live?'),
+                        _chips(
+                          value: _climate,
+                          options: const [
+                            ('cold', 'Freezing cold'),
+                            ('mild', 'Mild'),
+                            ('hot', 'Rarely cold'),
+                          ],
+                          onChanged: (v) => setState(() => _climate = v),
+                        ),
+                      ]),
+                      _stepPage([
+                        _headline('What does it have?'),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _toggle('Basement / crawlspace', _basement,
+                                (v) => setState(() => _basement = v)),
+                            _toggle('Garage', _garage,
+                                (v) => setState(() => _garage = v)),
+                            _toggle('Deck / patio', _deck,
+                                (v) => setState(() => _deck = v)),
+                            _toggle('Sprinkler system', _sprinklers,
+                                (v) => setState(() => _sprinklers = v)),
+                            _toggle('Water softener', _softener,
+                                (v) => setState(() => _softener = v)),
+                            _toggle('Fireplace / chimney', _chimney,
+                                (v) => setState(() => _chimney = v)),
+                            _toggle('Pool / hot tub', _pool,
+                                (v) => setState(() => _pool = v)),
+                            _toggle('Septic system', _septic,
+                                (v) => setState(() => _septic = v)),
+                            _toggle('Well water', _well,
+                                (v) => setState(() => _well = v)),
+                            _toggle('Solar panels', _solar,
+                                (v) => setState(() => _solar = v)),
+                            _toggle('Standby generator', _generator,
+                                (v) => setState(() => _generator = v)),
+                            _toggle('EV charger', _evCharger,
+                                (v) => setState(() => _evCharger = v)),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          'Next you pick exactly which jobs go into your plan. '
+                          'Nothing is added on its own: we pre-tick the jobs '
+                          'that fit your answers, and you untick anything you '
+                          'do not want.',
+                          style: TextStyle(
+                              color: context.muted, fontSize: 13, height: 1.4),
+                        ),
+                      ]),
+                      _jobsStep(),
+                    ],
+                  ),
+                ),
+                // Bottom navigation row: Back (from step 2 on) and Next,
+                // replaced by the build button on the last step.
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                  child: Row(
+                    children: [
+                      if (_step > 0)
+                        TextButton(
+                          onPressed: _building ? null : () => _goTo(_step - 1),
+                          child: const Text('Back'),
+                        ),
+                      const Spacer(),
+                      if (_last)
+                        FilledButton(
+                          onPressed: _building || _effectiveSelection.isEmpty
+                              ? null
+                              : _build,
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 26, vertical: 13),
+                            textStyle: const TextStyle(
+                                fontSize: 15.5, fontWeight: FontWeight.w700),
+                          ),
+                          child: Text(_building
+                              ? 'Building your plan…'
+                              : 'Build my plan · ${_effectiveSelection.length} jobs'),
+                        )
+                      else
+                        FilledButton(
+                          // From the last question, Next first plays the
+                          // "Finding jobs for you" loader; the loader's
+                          // onDone moves on to the picker step.
+                          onPressed: () => _step == _stepCount - 2
+                              ? _startFinder()
+                              : _goTo(_step + 1),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 26, vertical: 13),
+                            textStyle: const TextStyle(
+                                fontSize: 15.5, fontWeight: FontWeight.w700),
+                          ),
+                          child: const Text('Next'),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
             ),
+            // The finder covers the whole wizard, progress chrome and
+            // buttons included, while it plays; the PageView stays
+            // mounted underneath so the step position is kept.
+            if (_showFinder)
+              Positioned.fill(
+                child: ColoredBox(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  child: FindingJobsView(onDone: _finderDone),
+                ),
+              ),
           ],
         ),
       ),

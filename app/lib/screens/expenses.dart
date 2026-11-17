@@ -140,6 +140,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           ),
         for (final e in yearExpenses.take(40)) ...[
           NkCard(
+            // Tap any entry to edit it (or delete it from the form).
+            onTap: () => _expenseForm(existing: e),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: Row(
               children: [
@@ -181,66 +183,168 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     );
   }
 
-  Future<void> _addExpense() async {
-    final amount = TextEditingController();
-    final note = TextEditingController();
-    var category = 'Interior';
-    final ok = await showDialog<bool>(
+  Future<void> _addExpense() => _expenseForm();
+
+  /// The add-cost form, doubling as the edit form when [existing] is
+  /// given: fields come prefilled, Save writes the row back, and a
+  /// Delete option (edit mode only) removes it after a confirmation.
+  /// Editing or deleting touches ONLY the expense row — a receipt that
+  /// logged this cost keeps its own record, image and all.
+  Future<void> _expenseForm({Expense? existing}) async {
+    final isEdit = existing != null;
+    final amount = TextEditingController(
+        text: isEdit ? _amountText(existing.amount) : '');
+    final note = TextEditingController(text: existing?.note ?? '');
+    var category = existing?.category ?? 'Interior';
+    var date = existing?.date ?? DateTime.now();
+    const baseCategories = [
+      'HVAC', 'Plumbing', 'Roof & Gutters', 'Exterior', 'Interior',
+      'Safety', 'Appliances', 'Seasonal',
+    ];
+    final categories = <String>{
+      ...baseCategories,
+      if (isEdit) existing.category,
+    }.toList();
+
+    final action = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Add a cost'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: amount,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                  labelText: 'Amount', prefixText: '\$ '),
-              autofocus: true,
-            ),
-            TextField(
-              controller: note,
-              decoration: const InputDecoration(labelText: 'What for'),
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              initialValue: category,
-              decoration: const InputDecoration(labelText: 'Category'),
-              items: const [
-                'HVAC', 'Plumbing', 'Roof & Gutters', 'Exterior', 'Interior',
-                'Safety', 'Appliances', 'Seasonal',
-              ]
-                  .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                  .toList(),
-              onChanged: (v) => category = v ?? category,
-            ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text(isEdit ? 'Edit cost' : 'Add a cost'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: amount,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                    labelText: 'Amount', prefixText: '\$ '),
+                autofocus: !isEdit,
+              ),
+              TextField(
+                controller: note,
+                decoration: const InputDecoration(labelText: 'What for'),
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                initialValue: category,
+                decoration: const InputDecoration(labelText: 'Category'),
+                items: categories
+                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                    .toList(),
+                onChanged: (v) => category = v ?? category,
+              ),
+              const SizedBox(height: 4),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.calendar_today_outlined, size: 20),
+                title: const Text('Date'),
+                subtitle: Text('${date.month}/${date.day}/${date.year}'),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: ctx,
+                    initialDate: date,
+                    firstDate: DateTime(2015),
+                    lastDate: DateTime(2100),
+                  );
+                  if (picked != null) {
+                    setDialogState(() => date = picked);
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            if (isEdit)
+              TextButton(
+                onPressed: () async {
+                  final sure = await _confirmDelete();
+                  if (sure && ctx.mounted) {
+                    Navigator.pop(ctx, 'delete');
+                  }
+                },
+                style:
+                    TextButton.styleFrom(foregroundColor: NkColors.red),
+                child: const Text('Delete'),
+              ),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel')),
+            FilledButton(
+                onPressed: () => Navigator.pop(ctx, 'save'),
+                child: Text(isEdit ? 'Save changes' : 'Add')),
           ],
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
-          FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Add')),
-        ],
       ),
     );
-    if (ok != true) return;
+    if (action == null || !mounted) return;
+
+    if (action == 'delete') {
+      await AppDb.deleteExpense(existing!.id!);
+      await state.reload();
+      SyncService.syncNow();
+      return;
+    }
+
     final value = double.tryParse(amount.text.trim());
     if (value == null || value <= 0) return;
     final now = DateTime.now();
-    await AppDb.insertExpense(Expense(
-      homeId: state.activeHome!.id!,
-      date: now,
-      amount: value,
-      category: category,
-      note: note.text.trim().isEmpty ? null : note.text.trim(),
-      updatedAt: now,
-    ));
+    final noteText = note.text.trim().isEmpty ? null : note.text.trim();
+    if (isEdit) {
+      // Same row, new values: the id and any task/appliance links stay,
+      // and updatedAt moves so sync's last-write-wins picks the edit up.
+      await AppDb.updateExpense(Expense(
+        id: existing.id,
+        homeId: existing.homeId,
+        date: date,
+        amount: value,
+        category: category,
+        taskId: existing.taskId,
+        applianceId: existing.applianceId,
+        note: noteText,
+        updatedAt: now,
+      ));
+    } else {
+      await AppDb.insertExpense(Expense(
+        homeId: state.activeHome!.id!,
+        date: date,
+        amount: value,
+        category: category,
+        note: noteText,
+        updatedAt: now,
+      ));
+    }
     await state.reload();
     SyncService.syncNow();
   }
+
+  /// The delete confirmation, shown over the edit form.
+  Future<bool> _confirmDelete() async {
+    final sure = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete this entry?'),
+        content: const Text(
+            'This cost will be removed from your tracker. This cannot be undone.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Keep it')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style:
+                FilledButton.styleFrom(backgroundColor: NkColors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    return sure ?? false;
+  }
+
+  /// Prefill text for the amount field: whole dollars without a
+  /// trailing ".0", cents kept as typed.
+  static String _amountText(double v) =>
+      v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString();
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import 'finding_jobs.dart';
 
 /// How often a library job repeats, in plain words for the picker rows.
 String jobFrequencyLabel(int frequencyMonths) {
@@ -27,6 +28,10 @@ String jobMetaLine(TaskTemplate t) {
 /// job and per group, and tap-to-expand steps so people see exactly what
 /// they are signing up for. Only ticked jobs ever enter the plan.
 ///
+/// Groups start collapsed to just their heading: the whole group can be
+/// ticked or unticked right there, and tapping the heading opens it to
+/// the individual jobs.
+///
 /// Controlled: the parent owns the selection set and gets every change
 /// through [onChanged]. Renders as a plain column, so it drops into any
 /// scrolling parent (the onboarding wizard) as easily as a full screen.
@@ -48,6 +53,10 @@ class JobPickerList extends StatefulWidget {
 
 class _JobPickerListState extends State<JobPickerList> {
   String? _expandedId;
+
+  /// Categories currently opened up to their job rows. Empty at first:
+  /// every group starts collapsed to its heading.
+  final Set<String> _openGroups = {};
 
   /// Groups in the order their category first appears in the library.
   Map<String, List<TaskTemplate>> get _groups {
@@ -100,6 +109,7 @@ class _JobPickerListState extends State<JobPickerList> {
     final bool? groupValue =
         onCount == 0 ? false : (onCount == group.length ? true : null);
     final color = categoryColor(category);
+    final open = _openGroups.contains(category);
     return NkCard(
       padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
       child: Column(
@@ -107,35 +117,65 @@ class _JobPickerListState extends State<JobPickerList> {
         children: [
           Row(
             children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(categoryIcon(category), color: color, size: 21),
-              ),
-              const SizedBox(width: 10),
+              // The heading itself is the expand control: tapping it
+              // (anywhere but the checkbox) opens or closes the group.
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      category,
-                      style: TextStyle(
-                        fontSize: 15.5,
-                        fontWeight: FontWeight.w700,
-                        color: context.navyText,
+                child: InkWell(
+                  onTap: () => setState(() {
+                    if (open) {
+                      _openGroups.remove(category);
+                    } else {
+                      _openGroups.add(category);
+                    }
+                  }),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(categoryIcon(category),
+                            color: color, size: 21),
                       ),
-                    ),
-                    Text(
-                      '$onCount of ${group.length} on',
-                      style: TextStyle(fontSize: 12.5, color: context.muted),
-                    ),
-                  ],
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              category,
+                              style: TextStyle(
+                                fontSize: 15.5,
+                                fontWeight: FontWeight.w700,
+                                color: context.navyText,
+                              ),
+                            ),
+                            Text(
+                              '$onCount of ${group.length} on',
+                              style: TextStyle(
+                                  fontSize: 12.5, color: context.muted),
+                            ),
+                            if (!open)
+                              Text(
+                                'Tap to see sub tasks',
+                                style: TextStyle(
+                                    fontSize: 11.5, color: context.muted),
+                              ),
+                          ],
+                        ),
+                      ),
+                      Icon(open ? Icons.expand_less : Icons.expand_more,
+                          color: context.muted),
+                    ],
+                  ),
                 ),
               ),
+              // The group checkbox works straight from the collapsed
+              // heading: it ticks or unticks the whole group at once.
               Checkbox(
                 value: groupValue,
                 tristate: true,
@@ -144,8 +184,10 @@ class _JobPickerListState extends State<JobPickerList> {
               ),
             ],
           ),
-          const Divider(height: 1),
-          for (final t in group) _jobRow(context, t),
+          if (open) ...[
+            const Divider(height: 1),
+            for (final t in group) _jobRow(context, t),
+          ],
         ],
       ),
     );
@@ -251,14 +293,20 @@ class _JobPickerListState extends State<JobPickerList> {
 
 /// The full-screen picker used from the Plan tab. Pops with the new
 /// selection set on Save, or null when the user backs out.
+///
+/// Opening it first plays the short "Finding jobs for you" loader
+/// ([FindingJobsView], about 3 seconds) before the picker itself shows;
+/// pass [showLoader] false to skip straight to the list.
 class JobPickerScreen extends StatefulWidget {
   final List<TaskTemplate> templates;
   final Set<String> initialSelection;
+  final bool showLoader;
 
   const JobPickerScreen({
     super.key,
     required this.templates,
     required this.initialSelection,
+    this.showLoader = true,
   });
 
   @override
@@ -267,9 +315,20 @@ class JobPickerScreen extends StatefulWidget {
 
 class _JobPickerScreenState extends State<JobPickerScreen> {
   late Set<String> _selected = {...widget.initialSelection};
+  late bool _loading = widget.showLoader;
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Choose your jobs')),
+        body: FindingJobsView(
+          onDone: () {
+            if (mounted) setState(() => _loading = false);
+          },
+        ),
+      );
+    }
     return Scaffold(
       appBar: AppBar(title: const Text('Choose your jobs')),
       body: ListView(

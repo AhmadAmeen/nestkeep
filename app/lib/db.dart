@@ -342,6 +342,11 @@ class AppDb {
     return rows.map(Expense.fromMap).toList();
   }
 
+  static Future<void> updateExpense(Expense e) async {
+    final db = await open();
+    await db.update('expenses', e.toMap(), where: 'id = ?', whereArgs: [e.id]);
+  }
+
   static Future<void> deleteExpense(int id) async {
     final db = await open();
     await db.delete('expenses', where: 'id = ?', whereArgs: [id]);

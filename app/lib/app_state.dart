@@ -30,7 +30,7 @@ class AppState extends ChangeNotifier {
   List<HomeNote> homeNotes = [];
   List<Belonging> belongings = [];
   Entitlement entitlement = Entitlement.free;
-  AppAccent accent = AppAccent.blue;
+  AppAccent accent = AppAccent.purple;
   bool loaded = false;
 
   bool get hasHome => activeHome != null;
@@ -60,10 +60,7 @@ class AppState extends ChangeNotifier {
     }
 
     final savedAccent = await AppDb.getSetting('accent');
-    accent = AppAccent.values.firstWhere(
-      (a) => a.name == savedAccent,
-      orElse: () => AppAccent.blue,
-    );
+    accent = parseAppAccent(savedAccent);
 
     homes = await AppDb.homes();
     for (final h in homes) {

@@ -5,7 +5,7 @@ plus the 512px brand artwork used in-app (app/assets/icon.png).
 The repo snapshot carries no binary files, so the PNGs are drawn here in
 CI before the Android build. Design: deep navy rounded square, a white
 roof chevron, and a woven amber nest holding two eggs (one cream, one
-tinted primary blue). Bold shapes only, so the nest reads at 48px.
+purple, the app accent). Bold shapes only, so the nest reads at 48px.
 """
 import os
 
@@ -21,7 +21,7 @@ SIZES = {
 NAVY = (10, 30, 70, 255)        # #0A1E46
 WHITE = (255, 255, 255, 255)
 CREAM = (247, 243, 233, 255)    # egg cream
-EGG_BLUE = (173, 201, 255, 255)  # egg tinted with the primary blue
+EGG_PURPLE = (109, 77, 246, 255)  # egg in the accent purple #6D4DF6
 AMBER = (245, 166, 35, 255)     # #F5A623 nest straw
 RUST = (199, 101, 38, 255)      # nest shadow tone
 DARK = (146, 64, 14, 255)       # nest deep tone
@@ -53,7 +53,7 @@ def draw(size):
 
     # Eggs first: the bowl is painted over their bottoms so they sit IN
     # the nest. Right egg slightly lower and behind the left one.
-    d.ellipse([X(0.478), X(0.405), X(0.648), X(0.725)], fill=EGG_BLUE)
+    d.ellipse([X(0.478), X(0.405), X(0.648), X(0.725)], fill=EGG_PURPLE)
     d.ellipse([X(0.352), X(0.385), X(0.522), X(0.72)], fill=CREAM)
 
     # Bowl silhouette: a filled half-ellipse in the rust tone.
