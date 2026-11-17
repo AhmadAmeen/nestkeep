@@ -247,6 +247,160 @@ class LifeBar extends StatelessWidget {
   }
 }
 
+/// The life bar plus its labels, as the appliance card wears it:
+/// always on the card, dated or not. With no purchase date there is
+/// no clock to show, so the track sits empty and the label says what
+/// is missing instead of faking a percentage.
+class ApplianceLifeSection extends StatelessWidget {
+  final Appliance appliance;
+  final DateTime now;
+
+  const ApplianceLifeSection(
+      {super.key, required this.appliance, required this.now});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasDate = appliance.purchaseDate != null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        LifeBar(appliance: appliance, now: now, height: 6),
+        const SizedBox(height: 5),
+        if (hasDate)
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  lifeLabel(appliance, now),
+                  style: TextStyle(fontSize: 12, color: context.muted),
+                ),
+              ),
+              Text(
+                lifeLeftLabel(appliance, now),
+                style: TextStyle(fontSize: 12, color: context.muted),
+              ),
+            ],
+          )
+        else
+          Text(
+            'Add a purchase date to see its life',
+            style: TextStyle(fontSize: 12, color: context.muted),
+          ),
+      ],
+    );
+  }
+}
+
+/// The owner's condition tag on an appliance card: a filled chip in
+/// the condition's colour once set, a quiet outlined "Set condition"
+/// until then. Tapping it opens [showConditionSheet]; the chip owns
+/// its tap so the card underneath does not also navigate.
+class ConditionChip extends StatelessWidget {
+  final String? condition;
+  final VoidCallback onTap;
+
+  const ConditionChip({super.key, required this.condition, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final set = condition != null;
+    final color = set ? conditionColor(condition!) : context.muted;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+          decoration: BoxDecoration(
+            color: set ? color.withValues(alpha: 0.14) : null,
+            border: set ? null : Border.all(color: context.line),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!set) ...[
+                Icon(Icons.add, size: 12, color: color),
+                const SizedBox(width: 3),
+              ],
+              Text(
+                set ? conditionLabel(condition!) : 'Set condition',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The condition picker: the four tags plus "Not set" to clear.
+/// [onSave] receives the picked value (null clears) and owns the
+/// actual write; the sheet closes once the save lands.
+Future<void> showConditionSheet(
+  BuildContext context, {
+  required String? current,
+  required Future<void> Function(String? condition) onSave,
+}) {
+  return showModalBottomSheet<void>(
+    context: context,
+    // Six rows do not fit the default sheet height on short screens.
+    isScrollControlled: true,
+    builder: (ctx) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('How is it doing?',
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: ctx.navyText)),
+                const SizedBox(height: 2),
+                Text('Your call, from looking at the machine.',
+                    style: TextStyle(fontSize: 13, color: ctx.muted)),
+              ],
+            ),
+          ),
+          for (final value in conditionValues)
+            ListTile(
+              leading: Icon(Icons.circle, size: 14, color: conditionColor(value)),
+              title: Text(conditionLabel(value)),
+              trailing: current == value
+                  ? const Icon(Icons.check, size: 19)
+                  : null,
+              onTap: () async {
+                await onSave(value);
+                if (ctx.mounted) Navigator.pop(ctx);
+              },
+            ),
+          ListTile(
+            leading: Icon(Icons.circle_outlined,
+                size: 14, color: ctx.muted),
+            title: const Text('Not set'),
+            trailing:
+                current == null ? const Icon(Icons.check, size: 19) : null,
+            onTap: () async {
+              await onSave(null);
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 IconData categoryIcon(String category) {
   switch (category) {
     case 'HVAC':

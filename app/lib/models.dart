@@ -210,6 +210,11 @@ class Appliance {
   final String? imagePath; // local device path, may be null
   final bool imageSynced;
   final String? notes; // filter sizes, manual info, quirks
+  // The owner's own call on the machine's condition, set from the
+  // card or the detail screen: 'excellent' | 'good' | 'bad' |
+  // 'worn_out', or null when they have not set one. Separate from the
+  // computed life bands in lifespan.dart: age maths vs owner's eyes.
+  final String? condition;
   final DateTime updatedAt;
 
   Appliance({
@@ -228,6 +233,7 @@ class Appliance {
     this.imagePath,
     this.imageSynced = false,
     this.notes,
+    this.condition,
     required this.updatedAt,
   });
 
@@ -252,6 +258,7 @@ class Appliance {
         'imagePath': imagePath,
         'imageSynced': imageSynced ? 1 : 0,
         'notes': notes,
+        'condition': condition,
         'updatedAt': updatedAt.toIso8601String(),
       };
 
@@ -272,7 +279,33 @@ class Appliance {
         imagePath: m['imagePath'] as String?,
         imageSynced: (m['imageSynced'] as int? ?? 0) == 1,
         notes: m['notes'] as String?,
+        condition: m['condition'] as String?,
         updatedAt: DateTime.parse(m['updatedAt'] as String),
+      );
+
+  Appliance copyWith({
+    String? condition,
+    bool clearCondition = false,
+    DateTime? updatedAt,
+  }) =>
+      Appliance(
+        id: id,
+        homeId: homeId,
+        name: name,
+        brand: brand,
+        model: model,
+        serial: serial,
+        purchaseDate: purchaseDate,
+        warrantyMonths: warrantyMonths,
+        lifespanYears: lifespanYears,
+        store: store,
+        price: price,
+        receiptId: receiptId,
+        imagePath: imagePath,
+        imageSynced: imageSynced,
+        notes: notes,
+        condition: clearCondition ? null : (condition ?? this.condition),
+        updatedAt: updatedAt ?? this.updatedAt,
       );
 }
 

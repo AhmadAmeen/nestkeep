@@ -9,6 +9,7 @@ import '../app_state.dart';
 import '../db.dart';
 import '../lifespan.dart';
 import '../models.dart';
+import '../sync.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import 'appliance_form.dart';
@@ -65,6 +66,21 @@ class _ApplianceDetailScreenState extends State<ApplianceDetailScreen> {
     if (mounted) setState(() => _files = files);
   }
 
+  /// The condition tag, saved exactly as the My Home card saves it,
+  /// so the two never disagree.
+  Future<void> _saveCondition(String? condition) async {
+    final a = _current;
+    if (a.id == null) return;
+    await AppDb.updateAppliance(a.copyWith(
+      condition: condition,
+      clearCondition: condition == null,
+      updatedAt: DateTime.now(),
+    ));
+    await state.reload();
+    SyncService.syncNow();
+    if (mounted) setState(() {});
+  }
+
   Future<void> _addFile() async {
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
@@ -107,6 +123,8 @@ class _ApplianceDetailScreenState extends State<ApplianceDetailScreen> {
         path: dest,
         createdAt: DateTime.now(),
       ));
+      // Reload so the My Home card picks up the new first photo.
+      await state.reload();
       await _loadFiles();
     } catch (_) {
       // A failed copy just leaves the attachments as they were.
@@ -124,6 +142,8 @@ class _ApplianceDetailScreenState extends State<ApplianceDetailScreen> {
                 try {
                   await File(file.path).delete();
                 } catch (_) {}
+                // Reload so the My Home card drops the removed photo.
+                await state.reload();
                 await _loadFiles();
               },
       ),
@@ -187,6 +207,18 @@ class _ApplianceDetailScreenState extends State<ApplianceDetailScreen> {
                       Text(subLine,
                           style:
                               TextStyle(fontSize: 13, color: context.muted)),
+                    const SizedBox(height: 7),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: ConditionChip(
+                        condition: a.condition,
+                        onTap: () => showConditionSheet(
+                          context,
+                          current: a.condition,
+                          onSave: _saveCondition,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),

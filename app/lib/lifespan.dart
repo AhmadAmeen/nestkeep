@@ -108,3 +108,38 @@ String lifeLeftLabel(Appliance a, DateTime now) {
   final left = (effectiveLifespan(a) - _ageYears(a, now)).ceil();
   return 'Life left ~$left yrs';
 }
+
+// ---------- owner condition tags ----------
+//
+// The owner's own call on how a machine is doing, stored on the
+// appliance row as one of these values (null = not set). Deliberately
+// separate from the life bands above: the bands are age maths, this
+// is the owner looking at the machine. Both show on the card.
+
+const conditionExcellent = 'excellent';
+const conditionGood = 'good';
+const conditionBad = 'bad';
+const conditionWornOut = 'worn_out';
+
+const conditionValues = [
+  conditionExcellent,
+  conditionGood,
+  conditionBad,
+  conditionWornOut,
+];
+
+String conditionLabel(String condition) => switch (condition) {
+      conditionExcellent => 'Excellent',
+      conditionGood => 'Good',
+      conditionBad => 'Bad',
+      conditionWornOut => 'Worn out',
+      _ => 'Set condition',
+    };
+
+Color conditionColor(String condition) => switch (condition) {
+      conditionExcellent => NkColors.lifeGreen,
+      conditionGood => NkColors.green,
+      conditionBad => NkColors.amber,
+      conditionWornOut => NkColors.red,
+      _ => NkColors.green,
+    };

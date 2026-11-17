@@ -3,8 +3,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
+import '../db.dart';
 import '../lifespan.dart';
 import '../models.dart';
+import '../sync.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import 'appliance_detail.dart';
@@ -512,6 +514,77 @@ class _ApplianceCard extends StatelessWidget {
     required this.onOpenPaywall,
   });
 
+  /// The condition tag saves the same way every other appliance edit
+  /// does: write the row, reload, let sync follow.
+  Future<void> _saveCondition(String? condition) async {
+    if (appliance.id == null) return;
+    await AppDb.updateAppliance(appliance.copyWith(
+      condition: condition,
+      clearCondition: condition == null,
+      updatedAt: DateTime.now(),
+    ));
+    await state.reload();
+    SyncService.syncNow();
+  }
+
+  /// The card's leading tile: the appliance's first attached photo
+  /// when it has one (the receipt photo when that is all it has),
+  /// otherwise the type icon. A free user with no photo gets a small
+  /// gold PRO pill on the corner: photos are the Pro extra, shown
+  /// honestly rather than hidden.
+  Widget _tile(BuildContext context) {
+    final attached =
+        appliance.id == null ? null : state.appliancePhotos[appliance.id!];
+    final photoPath = attached ?? appliance.imagePath;
+    final photo = photoPath == null ? null : File(photoPath);
+    final hasPhoto = photo != null && photo.existsSync();
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        if (hasPhoto)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.file(
+              photo,
+              width: 48,
+              height: 48,
+              fit: BoxFit.cover,
+            ),
+          )
+        else
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: NkColors.green.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.kitchen_outlined, color: NkColors.green),
+          ),
+        if (!hasPhoto && !state.isPro)
+          Positioned(
+            right: -3,
+            bottom: -3,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(
+                color: NkColors.amber,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: const Text(
+                'PRO',
+                style: TextStyle(
+                  fontSize: 8.5,
+                  fontWeight: FontWeight.w800,
+                  color: NkColors.lightNavy,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final end = appliance.warrantyEnd;
@@ -547,28 +620,7 @@ class _ApplianceCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (appliance.imagePath != null &&
-                  File(appliance.imagePath!).existsSync())
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.file(
-                    File(appliance.imagePath!),
-                    width: 48,
-                    height: 48,
-                    fit: BoxFit.cover,
-                  ),
-                )
-              else
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: NkColors.green.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.kitchen_outlined,
-                      color: NkColors.green),
-                ),
+              _tile(context),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -592,38 +644,32 @@ class _ApplianceCard extends StatelessWidget {
                             fontSize: 13,
                             color: warrantyColor,
                             fontWeight: FontWeight.w600)),
-                    if ((appliance.notes ?? '').isNotEmpty)
+                    const SizedBox(height: 6),
+                    ConditionChip(
+                      condition: appliance.condition,
+                      onTap: () => showConditionSheet(
+                        context,
+                        current: appliance.condition,
+                        onSave: _saveCondition,
+                      ),
+                    ),
+                    if ((appliance.notes ?? '').isNotEmpty) ...[
+                      const SizedBox(height: 4),
                       Text(
                         appliance.notes!,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(fontSize: 13, color: context.muted),
                       ),
+                    ],
                   ],
                 ),
               ),
               if (hasDate) LifeChip(status: status),
             ],
           ),
-          if (hasDate) ...[
-            const SizedBox(height: 11),
-            LifeBar(appliance: appliance, now: now),
-            const SizedBox(height: 5),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    lifeLabel(appliance, now),
-                    style: TextStyle(fontSize: 12, color: context.muted),
-                  ),
-                ),
-                Text(
-                  lifeLeftLabel(appliance, now),
-                  style: TextStyle(fontSize: 12, color: context.muted),
-                ),
-              ],
-            ),
-          ],
+          const SizedBox(height: 11),
+          ApplianceLifeSection(appliance: appliance, now: now),
         ],
       ),
     );

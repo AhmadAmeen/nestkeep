@@ -158,6 +158,9 @@ class _ApplianceFormScreenState extends State<ApplianceFormScreen> {
       imagePath: widget.existing?.imagePath,
       imageSynced: widget.existing?.imageSynced ?? false,
       notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
+      // The form has no condition field; the tag set from the card or
+      // the detail screen rides through an edit untouched.
+      condition: widget.existing?.condition,
       updatedAt: now,
     );
     if (widget.existing == null) {

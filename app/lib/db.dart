@@ -15,7 +15,7 @@ class AppDb {
     final path = p.join(dir, 'nestkeep.db');
     _db = await openDatabase(
       path,
-      version: 4,
+      version: 5,
       onUpgrade: (db, oldVersion, newVersion) async {
         // v2 (build 5): completion details, appliance notes, and the
         // contractor book, home notes and belongings tables. Purely
@@ -40,6 +40,14 @@ class AppDb {
         // table is ever synced. Additive again.
         if (oldVersion < 4) {
           await _createV4Tables(db);
+        }
+        // v5 (build 17): the owner's condition tag on each appliance
+        // (excellent / good / bad / worn_out, NULL until they set
+        // one). A normal data field: it rides along in the synced
+        // appliance rows like every other column. Additive again.
+        if (oldVersion < 5) {
+          await db.execute(
+              'ALTER TABLE appliances ADD COLUMN condition TEXT');
         }
       },
       onCreate: (db, _) async {
@@ -85,6 +93,7 @@ class AppDb {
             imagePath TEXT,
             imageSynced INTEGER NOT NULL DEFAULT 0,
             notes TEXT,
+            condition TEXT,
             updatedAt TEXT NOT NULL
           )''');
         await db.execute('''

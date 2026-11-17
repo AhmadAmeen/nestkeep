@@ -26,6 +26,12 @@ class AppState extends ChangeNotifier {
       homeId == null ? null : profiles[homeId];
   List<TaskInstance> tasks = [];
   List<Appliance> appliances = [];
+
+  /// The first attached photo per appliance (appliance id -> local
+  /// path), for the My Home card thumbnail. Attachments themselves
+  /// stay loaded per-appliance by the detail screen; this is just the
+  /// one path the card needs.
+  Map<int, String> appliancePhotos = {};
   List<Expense> expenses = [];
   List<Receipt> receipts = [];
   List<Contractor> contractors = [];
@@ -102,6 +108,12 @@ class AppState extends ChangeNotifier {
     planSelections[id] =
         await loadPlanSelection(id) ?? derivedSelectionFromTasks(tasks);
     appliances = await AppDb.appliancesForHome(id);
+    appliancePhotos = {};
+    for (final a in appliances) {
+      if (a.id == null) continue;
+      final files = await AppDb.filesForAppliance(a.id!);
+      if (files.isNotEmpty) appliancePhotos[a.id!] = files.first.path;
+    }
     expenses = await AppDb.expensesForHome(id);
     receipts = await AppDb.receiptsForHome(id);
     contractors = await AppDb.contractorsForHome(id);
