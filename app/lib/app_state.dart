@@ -17,6 +17,7 @@ class AppState extends ChangeNotifier {
   Map<String, TaskTemplate> templateById = {};
   List<Home> homes = [];
   Map<int, HomeProfile> profiles = {};
+  Map<int, Set<String>> planSelections = {};
   Home? activeHome;
 
   HomeProfile? profileFor(int? homeId) =>
@@ -89,6 +90,8 @@ class AppState extends ChangeNotifier {
       if (p != null) profiles[id] = p;
     }
     tasks = await AppDb.tasksForHome(id);
+    planSelections[id] =
+        await loadPlanSelection(id) ?? derivedSelectionFromTasks(tasks);
     appliances = await AppDb.appliancesForHome(id);
     expenses = await AppDb.expensesForHome(id);
     receipts = await AppDb.receiptsForHome(id);
@@ -102,6 +105,28 @@ class AppState extends ChangeNotifier {
     activeHome = h;
     await AppDb.setSetting('activeHomeId', h.id.toString());
     await reload();
+  }
+
+  /// The library jobs the user has ticked for a home, from the cache
+  /// filled by reload(). For the active home before any reload, falls
+  /// back to the templates already in its plan.
+  Set<String> selectionFor(int homeId) =>
+      planSelections[homeId] ??
+      (homeId == activeHome?.id
+          ? derivedSelectionFromTasks(tasks)
+          : const <String>{});
+
+  /// The ticked library jobs for any home, storage-checked: the saved
+  /// selection when one exists, otherwise (homes planned before build
+  /// 10) the templates that already have jobs in that home's plan.
+  Future<Set<String>> selectedTemplateIds(int homeId) async {
+    final stored = await loadPlanSelection(homeId);
+    if (stored != null) return stored;
+    if (planSelections.containsKey(homeId)) return planSelections[homeId]!;
+    final homeTasks = homeId == activeHome?.id
+        ? tasks
+        : await AppDb.tasksForHome(homeId);
+    return derivedSelectionFromTasks(homeTasks);
   }
 
   HealthResult get health => computeHealth(tasks, templateById, DateTime.now());

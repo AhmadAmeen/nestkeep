@@ -246,15 +246,34 @@ DateTime nextDueAfter(TaskTemplate t, DateTime doneDate) {
   );
 }
 
+/// Which templates a plan build instantiates, in plan order. With no
+/// explicit selection, the profile decides (templateApplies). With an
+/// explicit selection, the user's ticks win outright: they may tick a
+/// job their answers would have excluded, and unticked jobs stay out
+/// even when their answers would have included them.
+List<TaskTemplate> templatesForPlan(
+  List<TaskTemplate> templates,
+  HomeProfile profile,
+  Set<String>? onlyTemplateIds,
+) {
+  final chosen = onlyTemplateIds == null
+      ? templates.where((t) => templateApplies(t, profile)).toList()
+      : templates.where((t) => onlyTemplateIds.contains(t.id)).toList();
+  chosen.sort((a, b) => a.category.compareTo(b.category));
+  return chosen;
+}
+
 /// Generate and store the full plan for a home. Returns how many jobs.
+/// When [onlyTemplateIds] is given, only those library jobs are created
+/// (the user's own ticked selection); otherwise the profile decides.
 Future<int> generatePlan(
   int homeId,
   HomeProfile profile,
   List<TaskTemplate> templates,
-  DateTime now,
-) async {
-  final applicable = templates.where((t) => templateApplies(t, profile)).toList()
-    ..sort((a, b) => a.category.compareTo(b.category));
+  DateTime now, {
+  Set<String>? onlyTemplateIds,
+}) async {
+  final applicable = templatesForPlan(templates, profile, onlyTemplateIds);
   var i = 0;
   for (final t in applicable) {
     await AppDb.insertTask(TaskInstance(
@@ -268,6 +287,91 @@ Future<int> generatePlan(
     i++;
   }
   return applicable.length;
+}
+
+/// What changed between two job selections: the templates to start
+/// (added) and the templates to stop (removed).
+({Set<String> added, Set<String> removed}) planSelectionDiff(
+  Set<String> oldSet,
+  Set<String> newSet,
+) =>
+    (
+      added: newSet.difference(oldSet),
+      removed: oldSet.difference(newSet),
+    );
+
+/// The user's ticked library jobs for a home, stored per home so the
+/// picker reopens exactly where they left it.
+Future<void> savePlanSelection(int homeId, Set<String> templateIds) =>
+    AppDb.setSetting(
+      'selected_templates_$homeId',
+      jsonEncode(templateIds.toList()..sort()),
+    );
+
+/// The stored selection, or null when this home has none yet (installs
+/// from before build 10 never saved one).
+Future<Set<String>?> loadPlanSelection(int homeId) async {
+  final raw = await AppDb.getSetting('selected_templates_$homeId');
+  if (raw == null) return null;
+  try {
+    return (jsonDecode(raw) as List).cast<String>().toSet();
+  } catch (_) {
+    return null;
+  }
+}
+
+/// The selection implied by a home's existing jobs: every template that
+/// already has an instance (any status) counts as chosen. This is the
+/// fallback for homes planned before selections existed.
+Set<String> derivedSelectionFromTasks(List<TaskInstance> tasks) => {
+      for (final t in tasks)
+        if (t.templateId != null) t.templateId!,
+    };
+
+/// Apply a picker save to a home's live plan: newly ticked templates get
+/// their next upcoming instance (first due date by the same schedule the
+/// plan builder uses), unticked templates lose their upcoming instances
+/// (done and skipped history is never touched), and the new selection is
+/// persisted. The caller reloads state and reschedules reminders.
+Future<void> applyPlanSelection({
+  required int homeId,
+  required Set<String> newSelection,
+  required List<TaskTemplate> templates,
+  required List<TaskInstance> currentTasks,
+  required DateTime now,
+}) async {
+  final oldSelection =
+      await loadPlanSelection(homeId) ?? derivedSelectionFromTasks(currentTasks);
+  final diff = planSelectionDiff(oldSelection, newSelection);
+
+  for (final task in currentTasks) {
+    if (task.templateId != null &&
+        diff.removed.contains(task.templateId) &&
+        task.status == TaskStatus.upcoming) {
+      await AppDb.deleteTask(task.id!);
+    }
+  }
+
+  final byId = {for (final t in templates) t.id: t};
+  var stagger = 0;
+  for (final id in diff.added) {
+    final t = byId[id];
+    if (t == null) continue;
+    final alreadyLive = currentTasks.any(
+        (x) => x.templateId == id && x.status == TaskStatus.upcoming);
+    if (alreadyLive) continue;
+    await AppDb.insertTask(TaskInstance(
+      homeId: homeId,
+      templateId: t.id,
+      title: t.title,
+      category: t.category,
+      dueDate: firstDueDate(t, now, stagger),
+      updatedAt: now,
+    ));
+    stagger++;
+  }
+
+  await savePlanSelection(homeId, newSelection);
 }
 
 /// How many of their own jobs a free plan can hold at one time.

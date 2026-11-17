@@ -116,6 +116,10 @@ ThemeData nkLightTheme([AppAccent accent = AppAccent.blue]) {
         TextStyle(fontSize: 12, color: NkColors.lightText),
       ),
     ),
+    inputDecorationTheme: _inputDecoration(
+      primary: primary,
+      fill: NkColors.lightCard,
+    ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         backgroundColor: primary,
@@ -124,6 +128,41 @@ ThemeData nkLightTheme([AppAccent accent = AppAccent.blue]) {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
       ),
+    ),
+  );
+}
+
+/// The modern form look, shared by every text field in the app: rounded
+/// corners (radius 16), filled with the card colour, a hairline border
+/// in the app accent that deepens to a full 2px accent on focus.
+InputDecorationTheme _inputDecoration({
+  required Color primary,
+  required Color fill,
+}) {
+  final radius = BorderRadius.circular(16);
+  return InputDecorationTheme(
+    filled: true,
+    fillColor: fill,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    border: OutlineInputBorder(
+      borderRadius: radius,
+      borderSide: BorderSide(color: primary.withValues(alpha: 0.35)),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: radius,
+      borderSide: BorderSide(color: primary.withValues(alpha: 0.35)),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: radius,
+      borderSide: BorderSide(color: primary, width: 2),
+    ),
+    errorBorder: OutlineInputBorder(
+      borderRadius: radius,
+      borderSide: const BorderSide(color: NkColors.red),
+    ),
+    focusedErrorBorder: OutlineInputBorder(
+      borderRadius: radius,
+      borderSide: const BorderSide(color: NkColors.red, width: 2),
     ),
   );
 }
@@ -167,6 +206,10 @@ ThemeData nkDarkTheme([AppAccent accent = AppAccent.blue]) {
       labelTextStyle: WidgetStatePropertyAll(
         TextStyle(fontSize: 12, color: NkColors.darkText),
       ),
+    ),
+    inputDecorationTheme: _inputDecoration(
+      primary: primary,
+      fill: NkColors.darkCard,
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(

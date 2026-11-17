@@ -9,6 +9,7 @@ import '../reminders.dart';
 import '../sync.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import 'job_picker.dart';
 import 'today.dart';
 
 /// The Plan tab: everything on the plan, grouped by urgency, plus the
@@ -65,27 +66,41 @@ class PlanScreen extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'Built for your home from its systems and the season. Tap any job for the full guide.',
+          'The jobs you ticked, plus your own. Tap any job for the full guide.',
           style: TextStyle(color: context.muted),
         ),
-        if (state.profileFor(state.activeHome?.id) != null) ...[
-          const SizedBox(height: 6),
-          Builder(builder: (context) {
-            final profile = state.profileFor(state.activeHome?.id)!;
-            final included = state.templates
-                .where((t) => templateApplies(t, profile))
-                .length;
-            final leftOut = state.templates.length - included;
-            return Text(
-              'Built from your answers: $included jobs in your plan, '
-              '$leftOut left out because they do not apply to your home.',
-              style: TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w600,
-                  color: context.navyText),
-            );
-          }),
-        ],
+        const SizedBox(height: 14),
+        NkCard(
+          padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${state.selectionFor(state.activeHome!.id!).length} jobs in your plan',
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: context.navyText),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Your ticked library jobs. Change them any time.',
+                      style: TextStyle(fontSize: 13, color: context.muted),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: () => _chooseJobs(context),
+                child: const Text('Choose jobs',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
+        ),
         if (overdue.isNotEmpty) ...[
           const SizedBox(height: 20),
           const SectionHeading('Overdue'),
@@ -174,6 +189,33 @@ class PlanScreen extends StatelessWidget {
   }
 
   String _shortDate(DateTime d) => '${d.month}/${d.day}/${d.year}';
+
+  /// Open the job picker with the current ticks; on save, apply the
+  /// diff (new ticks join the plan, unticked jobs leave it) and refresh.
+  Future<void> _chooseJobs(BuildContext context) async {
+    final homeId = state.activeHome!.id!;
+    final current = await state.selectedTemplateIds(homeId);
+    if (!context.mounted) return;
+    final result = await Navigator.of(context).push<Set<String>>(
+      MaterialPageRoute(
+        builder: (_) => JobPickerScreen(
+          templates: state.templates,
+          initialSelection: current,
+        ),
+      ),
+    );
+    if (result == null) return;
+    await applyPlanSelection(
+      homeId: homeId,
+      newSelection: result,
+      templates: state.templates,
+      currentTasks: state.tasks,
+      now: DateTime.now(),
+    );
+    await state.reload();
+    await Reminders.reschedule(state.tasks, state.appliances);
+    SyncService.syncNow();
+  }
 
   Future<void> _addCustom(BuildContext context) async {
     if (!state.isPro &&

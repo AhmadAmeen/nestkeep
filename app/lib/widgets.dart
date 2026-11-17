@@ -31,16 +31,36 @@ class NkCard extends StatelessWidget {
         child: Padding(padding: padding, child: child),
       ),
     );
-    if (accentLeft == null) return card;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(width: 5, color: accentLeft),
-          Expanded(child: card),
+    final Widget inner;
+    if (accentLeft == null) {
+      inner = card;
+    } else {
+      inner = ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(width: 5, color: accentLeft),
+            Expanded(child: card),
+          ],
+        ),
+      );
+    }
+    // A soft shadow under every card: subtle depth, kept light so dense
+    // screens still read calm. Navy in light mode, black in dark.
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: (context.isDark ? Colors.black : NkColors.lightNavy)
+                .withValues(alpha: 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
         ],
       ),
+      child: inner,
     );
   }
 }

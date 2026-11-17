@@ -6,12 +6,13 @@ import '../models.dart';
 import '../plan.dart';
 import '../reminders.dart';
 import '../theme.dart';
-import '../widgets.dart';
+import 'job_picker.dart';
 
 /// First-run setup as a step wizard: one question focus per step, then
-/// the full seasonal plan is generated on the phone in under a minute.
-/// No sign-in wall, ever. Defaults are pre-filled on every step, so Next
-/// is always available and going back never loses an answer.
+/// the user ticks exactly which library jobs they want and the plan is
+/// built from those ticks on the phone in under a minute. No sign-in
+/// wall, ever. Defaults are pre-filled on every step, so Next is always
+/// available and going back never loses an answer.
 class OnboardingScreen extends StatefulWidget {
   final AppState state;
   final VoidCallback onDone;
@@ -48,7 +49,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   bool _building = false;
   int _step = 0;
 
+  /// The user's own ticks on the final step. Null until they change
+  /// anything: before that, the picker follows the answers and pre-ticks
+  /// every job that applies to this home.
+  Set<String>? _pickedJobs;
+
   bool get _last => _step == _stepCount - 1;
+
+  /// The jobs the plan will be built from: the user's ticks once they
+  /// have made any, otherwise everything their answers say applies.
+  Set<String> get _effectiveSelection =>
+      _pickedJobs ??
+      widget.state.templates
+          .where((t) => templateApplies(t, _profile))
+          .map((t) => t.id)
+          .toSet();
 
   @override
   void dispose() {
@@ -98,7 +113,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       updatedAt: now,
     ));
     final profile = _profile;
-    await generatePlan(homeId, profile, widget.state.templates, now);
+    final selected = _effectiveSelection;
+    await generatePlan(homeId, profile, widget.state.templates, now,
+        onlyTemplateIds: selected);
+    await savePlanSelection(homeId, selected);
     await saveProfile(homeId, profile);
     widget.state.homes = await AppDb.homes();
     final home = widget.state.homes.firstWhere((h) => h.id == homeId);
@@ -260,14 +278,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                     const SizedBox(height: 14),
                     Text(
-                      'Only jobs that fit your answers make your plan. '
-                      'Everything else is left out, and every job in the '
-                      'plan says why it is there.',
+                      'Next you pick exactly which jobs go into your plan. '
+                      'Nothing is added on its own: we pre-tick the jobs '
+                      'that fit your answers, and you untick anything you '
+                      'do not want.',
                       style: TextStyle(
                           color: context.muted, fontSize: 13, height: 1.4),
                     ),
                   ]),
-                  _summaryStep(),
+                  _jobsStep(),
                 ],
               ),
             ),
@@ -285,15 +304,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   const Spacer(),
                   if (_last)
                     FilledButton(
-                      onPressed: _building ? null : _build,
+                      onPressed: _building || _effectiveSelection.isEmpty
+                          ? null
+                          : _build,
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 26, vertical: 13),
                         textStyle: const TextStyle(
                             fontSize: 15.5, fontWeight: FontWeight.w700),
                       ),
-                      child: Text(
-                          _building ? 'Building your plan…' : 'Build my plan'),
+                      child: Text(_building
+                          ? 'Building your plan…'
+                          : 'Build my plan · ${_effectiveSelection.length} jobs'),
                     )
                   else
                     FilledButton(
@@ -315,43 +337,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  /// Last step: the live plan summary for the answers given so far.
-  Widget _summaryStep() {
-    final templates = widget.state.templates;
-    final included =
-        templates.where((t) => templateApplies(t, _profile)).length;
-    final leftOut = templates.length - included;
+  /// Last step: the job picker. Every library job is listed, grouped by
+  /// category; the ones that fit the answers are pre-ticked, everything
+  /// else waits unticked. Only ticked jobs enter the plan.
+  Widget _jobsStep() {
     return _stepPage([
-      _headline('Your plan is ready'),
-      NkCard(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '$included jobs',
-              style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                  color: context.navyText),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'built for your home from your answers, each with steps, '
-              'what it costs to do, and what it costs to skip.',
-              style:
-                  TextStyle(color: context.muted, height: 1.4, fontSize: 14.5),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              '$leftOut left out because they do not apply to your home.',
-              style:
-                  TextStyle(color: context.muted, height: 1.4, fontSize: 14.5),
-            ),
-          ],
-        ),
+      _headline('Choose your jobs'),
+      Text(
+        'Tick the jobs you want in your plan. Tap a job to see its steps.',
+        style: TextStyle(color: context.muted, height: 1.45, fontSize: 15),
       ),
       const SizedBox(height: 16),
+      JobPickerList(
+        templates: widget.state.templates,
+        selected: _effectiveSelection,
+        onChanged: (s) => setState(() => _pickedJobs = s),
+      ),
       Row(
         children: [
           Icon(Icons.lock_outline, size: 18, color: context.muted),
@@ -407,20 +408,89 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       runSpacing: 8,
       children: [
         for (final o in options)
-          ChoiceChip(
-            label: Text(o.$2),
+          _OptionTile(
+            label: o.$2,
             selected: value == o.$1,
-            onSelected: (_) => onChanged(o.$1),
+            onTap: () => onChanged(o.$1),
           ),
       ],
     );
   }
 
   Widget _toggle(String label, bool value, void Function(bool) onChanged) {
-    return FilterChip(
-      label: Text(label),
+    return _OptionTile(
+      label: label,
       selected: value,
-      onSelected: onChanged,
+      onTap: () => onChanged(!value),
+    );
+  }
+}
+
+/// One selectable answer in the wizard: a rounded tile with a hairline
+/// border that picks up the app accent (2px border, tinted fill, soft
+/// shadow, check mark) when selected. The modern form look, shared by
+/// the single-choice questions and the feature toggles.
+class _OptionTile extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _OptionTile({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = context.primary;
+    return Container(
+      decoration: BoxDecoration(
+        color: selected
+            ? accent.withValues(alpha: 0.10)
+            : (context.isDark ? NkColors.darkCard : NkColors.lightCard),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: selected ? accent : context.line,
+          width: selected ? 2 : 1,
+        ),
+        boxShadow: selected
+            ? [
+                BoxShadow(
+                  color: accent.withValues(alpha: 0.18),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ]
+            : null,
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (selected) ...[
+                  Icon(Icons.check_circle, size: 17, color: accent),
+                  const SizedBox(width: 7),
+                ],
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    color: context.navyText,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
