@@ -24,6 +24,9 @@ class AppState extends ChangeNotifier {
   List<Appliance> appliances = [];
   List<Expense> expenses = [];
   List<Receipt> receipts = [];
+  List<Contractor> contractors = [];
+  List<HomeNote> homeNotes = [];
+  List<Belonging> belongings = [];
   Entitlement entitlement = Entitlement.free;
   bool loaded = false;
 
@@ -81,6 +84,9 @@ class AppState extends ChangeNotifier {
     appliances = await AppDb.appliancesForHome(id);
     expenses = await AppDb.expensesForHome(id);
     receipts = await AppDb.receiptsForHome(id);
+    contractors = await AppDb.contractorsForHome(id);
+    homeNotes = await AppDb.homeNotesForHome(id);
+    belongings = await AppDb.belongingsForHome(id);
     notifyListeners();
   }
 
@@ -91,7 +97,12 @@ class AppState extends ChangeNotifier {
   }
 
   HealthResult get health => computeHealth(tasks, templateById, DateTime.now());
+  List<CategoryHealth> get healthByCategory =>
+      computeHealthByCategory(tasks, templateById, DateTime.now());
   int get streakWeeks => computeStreakWeeks(tasks, DateTime.now());
+
+  double get belongingsTotal =>
+      belongings.fold(0.0, (sum, b) => sum + b.value);
 
   List<TaskInstance> get upcoming =>
       tasks.where((t) => t.status == TaskStatus.upcoming).toList()

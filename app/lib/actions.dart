@@ -11,12 +11,16 @@ Future<void> completeTask(
   AppState state,
   TaskInstance task, {
   double? costPaid,
+  String? doneBy,
+  String? doneNote,
 }) async {
   final now = DateTime.now();
   final done = task.copyWith(
     status: TaskStatus.done,
     doneDate: now,
     costPaid: costPaid,
+    doneBy: doneBy,
+    doneNote: doneNote,
     updatedAt: now,
   );
   await AppDb.updateTask(done);

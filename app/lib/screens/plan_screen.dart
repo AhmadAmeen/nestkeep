@@ -143,9 +143,16 @@ class PlanScreen extends StatelessWidget {
                                 color: context.navyText)),
                         Text(
                           'Done ${t.doneDate == null ? '' : _shortDate(t.doneDate!)}'
-                          '${t.costPaid != null && t.costPaid! > 0 ? ' · ${money(t.costPaid!)}' : ''}',
+                          '${t.costPaid != null && t.costPaid! > 0 ? ' · ${money(t.costPaid!)}' : ''}'
+                          '${(t.doneBy ?? '').isNotEmpty ? ' · by ${t.doneBy}' : ''}',
                           style: TextStyle(fontSize: 13, color: context.muted),
                         ),
+                        if ((t.doneNote ?? '').isNotEmpty)
+                          Text(
+                            t.doneNote!,
+                            style:
+                                TextStyle(fontSize: 13, color: context.muted),
+                          ),
                       ],
                     ),
                   ),

@@ -20,6 +20,8 @@ class HomeProfile {
   final bool hasWell;
   final bool hasSolar;
   final bool hasGenerator;
+  final bool hasEvCharger;
+  final String climate; // cold, mild, hot (how hard winters bite)
 
   const HomeProfile({
     required this.homeType,
@@ -36,6 +38,8 @@ class HomeProfile {
     this.hasWell = false,
     this.hasSolar = false,
     this.hasGenerator = false,
+    this.hasEvCharger = false,
+    this.climate = 'mild',
   });
 
   bool get isApartmentLike => homeType == 'condo' || homeType == 'apartment';
@@ -53,6 +57,7 @@ class HomeProfile {
         if (hasWell) 'well',
         if (hasSolar) 'solar',
         if (hasGenerator) 'generator',
+        if (hasEvCharger) 'ev',
         'heating_$heating',
         'cooling_$cooling',
         if (isApartmentLike) 'apartment_like',
@@ -73,6 +78,8 @@ class HomeProfile {
         'hasWell': hasWell,
         'hasSolar': hasSolar,
         'hasGenerator': hasGenerator,
+        'hasEvCharger': hasEvCharger,
+        'climate': climate,
       };
 
   factory HomeProfile.fromJson(Map<String, dynamic> j) => HomeProfile(
@@ -90,6 +97,8 @@ class HomeProfile {
         hasWell: j['hasWell'] as bool? ?? false,
         hasSolar: j['hasSolar'] as bool? ?? false,
         hasGenerator: j['hasGenerator'] as bool? ?? false,
+        hasEvCharger: j['hasEvCharger'] as bool? ?? false,
+        climate: j['climate'] as String? ?? 'mild',
       );
 }
 
@@ -152,6 +161,8 @@ bool templateApplies(TaskTemplate t, HomeProfile p) {
     return false;
   }
   if (p.heating == 'boiler' && id == 'hvac-filter') return false;
+  // Winterizing outdoor faucets only matters where winters actually freeze.
+  if (id == 'plumb-winterize-faucets' && p.climate != 'cold') return false;
   return true;
 }
 
@@ -180,6 +191,9 @@ String? planReason(TaskTemplate t, HomeProfile p) {
     'solar-clean': 'you have solar panels',
     'gen-test': 'you have a standby generator',
     'gen-service': 'you have a standby generator',
+    'ev-charger-check': 'you charge an EV at home',
+    'ev-charger-service': 'you charge an EV at home',
+    'plumb-winterize-faucets': 'you have freezing winters',
     'seasonal-window-ac': 'you cool with window units',
   };
   final r = reasons[t.id];

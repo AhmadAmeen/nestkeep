@@ -95,6 +95,9 @@ class SyncService {
     await syncTable('task_instances', 'tasks', (r) => r);
     await syncTable('appliances', 'appliances', (r) => r);
     await syncTable('expenses', 'expenses', (r) => r);
+    await syncTable('contractors', 'contractors', (r) => r);
+    await syncTable('home_notes', 'homeNotes', (r) => r);
+    await syncTable('belongings', 'belongings', (r) => r);
     // Receipts carry a JSON items string locally and in Firestore alike.
     await syncTable('receipts', 'receipts', (r) => r);
   }
@@ -143,7 +146,8 @@ class SyncService {
     if (!signedIn) return;
     final uid = user!.uid;
     for (final name in [
-      'homes', 'tasks', 'appliances', 'expenses', 'receipts', 'receiptImages'
+      'homes', 'tasks', 'appliances', 'expenses', 'receipts', 'receiptImages',
+      'contractors', 'homeNotes', 'belongings'
     ]) {
       final snap =
           await FirebaseFirestore.instance.collection('users/$uid/$name').get();

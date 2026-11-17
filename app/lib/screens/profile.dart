@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../app_state.dart';
+import '../calendar.dart';
 import '../db.dart';
 import '../sync.dart';
 import '../theme.dart';
@@ -285,6 +286,17 @@ class ProfileScreen extends StatelessWidget {
                 trailing: const Icon(Icons.ios_share_outlined),
                 onTap: state.isPro ? () => _export(context) : onOpenPaywall,
               ),
+              const Divider(height: 1),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Export plan (.ics)'),
+                subtitle: Text(
+                  'Every upcoming job as an all-day calendar event. Import it into any calendar app.',
+                  style: TextStyle(color: context.muted),
+                ),
+                trailing: const Icon(Icons.event_outlined),
+                onTap: () => sharePlanIcs(state),
+              ),
               if (onShowIntro != null) ...[
                 ListTile(
                   contentPadding: EdgeInsets.zero,
@@ -322,7 +334,7 @@ class ProfileScreen extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'NestKeep 1.0.1 · Made to be kept: no ads, no selling data, your home data lives on your phone.',
+          'NestKeep 1.0.2 · Made to be kept: no ads, no selling data, your home data lives on your phone.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 12.5, color: context.muted),
         ),
@@ -350,7 +362,8 @@ class ProfileScreen extends StatelessWidget {
     final db = await AppDb.open();
     final data = <String, Object?>{};
     for (final table in [
-      'homes', 'task_instances', 'appliances', 'receipts', 'expenses'
+      'homes', 'task_instances', 'appliances', 'receipts', 'expenses',
+      'contractors', 'home_notes', 'belongings'
     ]) {
       data[table] = await db.query(table);
     }

@@ -55,13 +55,32 @@ Future<void> shareHomeReport(AppState state) async {
             style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
         for (final t in done.take(30))
           pw.Text(
-              '${t.doneDate == null ? '' : d(t.doneDate!)} — ${t.title}${t.costPaid != null && t.costPaid! > 0 ? ' (\$${t.costPaid!.toStringAsFixed(2)})' : ''}'),
+              '${t.doneDate == null ? '' : d(t.doneDate!)} — ${t.title}${t.costPaid != null && t.costPaid! > 0 ? ' (\$${t.costPaid!.toStringAsFixed(2)})' : ''}${(t.doneBy ?? '').isNotEmpty ? ' — by ${t.doneBy}' : ''}'),
         pw.SizedBox(height: 16),
         pw.Text('Appliances & warranties',
             style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
         for (final a in state.appliances)
           pw.Text(
               '${a.name}${a.brand != null ? ' (${a.brand} ${a.model ?? ''})' : ''} — bought ${a.purchaseDate == null ? 'date unknown' : d(a.purchaseDate!)}, warranty ${a.warrantyMonths} months${a.warrantyEnd != null ? ', ends ${d(a.warrantyEnd!)}' : ''}'),
+        if (state.belongings.isNotEmpty) ...[
+          pw.SizedBox(height: 16),
+          pw.Text('Belongings (for insurance)',
+              style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+          for (final b in state.belongings)
+            pw.Text(
+                '${b.name} — ${b.room} — \$${b.value.toStringAsFixed(2)}'),
+          pw.Text(
+              'Total listed value: \$${state.belongingsTotal.toStringAsFixed(2)}',
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+        ],
+        if (state.contractors.isNotEmpty) ...[
+          pw.SizedBox(height: 16),
+          pw.Text('Your pros',
+              style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+          for (final c in state.contractors)
+            pw.Text(
+                '${c.name} — ${c.trade}${(c.phone ?? '').isNotEmpty ? ' — ${c.phone}' : ''}'),
+        ],
       ],
     ),
   );

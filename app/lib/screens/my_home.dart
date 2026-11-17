@@ -7,6 +7,10 @@ import '../models.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import 'appliance_form.dart';
+import 'belonging_form.dart';
+import 'contractor_form.dart';
+import 'history.dart';
+import 'note_form.dart';
 
 /// My Home: the warranty vault. Appliances with their warranty clocks,
 /// receipts kept with them, and the home's basic facts.
@@ -117,6 +121,44 @@ class MyHomeScreen extends StatelessWidget {
             ],
           ),
         ),
+        const SizedBox(height: 12),
+        NkCard(
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => HistoryScreen(state: state),
+          )),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: NkColors.green.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: const Icon(Icons.history_outlined,
+                    color: NkColors.green, size: 24),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Home history',
+                        style: TextStyle(
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.w600,
+                            color: context.navyText)),
+                    Text(
+                      '${state.tasks.where((t) => t.status == TaskStatus.done).length} jobs done, on the record',
+                      style: TextStyle(fontSize: 13, color: context.muted),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
+        ),
         const SizedBox(height: 20),
         const SectionHeading('Appliances & warranties'),
         const SizedBox(height: 10),
@@ -186,6 +228,203 @@ class MyHomeScreen extends StatelessWidget {
                   ),
                 ),
                 Text(money(r.total),
+                    style: TextStyle(
+                        fontWeight: FontWeight.w700, color: context.navyText)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
+        const SizedBox(height: 12),
+        SectionHeading('Your pros',
+            actionLabel: 'Add',
+            onAction: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => ContractorFormScreen(state: state),
+                ))),
+        const SizedBox(height: 10),
+        if (state.contractors.isEmpty)
+          NkCard(
+            child: Text(
+              'Your plumber, electrician, HVAC tech. Add the people you trust so their number is here when something breaks.',
+              style: TextStyle(color: context.muted, height: 1.4),
+            ),
+          ),
+        for (final c in state.contractors) ...[
+          NkCard(
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => ContractorFormScreen(state: state, existing: c),
+            )),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: NkColors.lightPrimary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: const Icon(Icons.handyman_outlined,
+                      color: NkColors.lightPrimary, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(c.name,
+                          style: TextStyle(
+                              fontSize: 15.5,
+                              fontWeight: FontWeight.w600,
+                              color: context.navyText)),
+                      Text(
+                        [c.trade, if ((c.phone ?? '').isNotEmpty) c.phone!]
+                            .join(' · '),
+                        style: TextStyle(fontSize: 13, color: context.muted),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
+        const SizedBox(height: 12),
+        SectionHeading('Home notes',
+            actionLabel: 'Add',
+            onAction: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => NoteFormScreen(state: state),
+                ))),
+        const SizedBox(height: 10),
+        if (state.homeNotes.isEmpty)
+          NkCard(
+            child: Text(
+              'Paint colours, part numbers, codes, where things are. The stuff a house knows and people forget.',
+              style: TextStyle(color: context.muted, height: 1.4),
+            ),
+          ),
+        for (final n in state.homeNotes) ...[
+          NkCard(
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => NoteFormScreen(state: state, existing: n),
+            )),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: NkColors.amber.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: const Icon(Icons.sticky_note_2_outlined,
+                      color: NkColors.amber, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(n.title,
+                          style: TextStyle(
+                              fontSize: 15.5,
+                              fontWeight: FontWeight.w600,
+                              color: context.navyText)),
+                      if (n.body.isNotEmpty)
+                        Text(
+                          n.body,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 13, color: context.muted),
+                        ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
+        const SizedBox(height: 12),
+        SectionHeading('Belongings',
+            actionLabel: 'Add',
+            onAction: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => BelongingFormScreen(state: state),
+                ))),
+        if (state.belongings.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          NkCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text('Listed value',
+                          style: TextStyle(fontSize: 13, color: context.muted)),
+                    ),
+                    Text(money(state.belongingsTotal),
+                        style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: context.navyText)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'For insurance: keep values honest and current.',
+                  style: TextStyle(fontSize: 13, color: context.muted),
+                ),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 10),
+        if (state.belongings.isEmpty)
+          NkCard(
+            child: Text(
+              'Nothing listed yet. Add the big things: furniture, TV, laptop, jewellery. The list goes into your home report.',
+              style: TextStyle(color: context.muted, height: 1.4),
+            ),
+          ),
+        for (final b in state.belongings) ...[
+          NkCard(
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => BelongingFormScreen(state: state, existing: b),
+            )),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: NkColors.green.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: const Icon(Icons.inventory_2_outlined,
+                      color: NkColors.green, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(b.name,
+                          style: TextStyle(
+                              fontSize: 15.5,
+                              fontWeight: FontWeight.w600,
+                              color: context.navyText)),
+                      Text(b.room,
+                          style: TextStyle(fontSize: 13, color: context.muted)),
+                    ],
+                  ),
+                ),
+                Text(money(b.value),
                     style: TextStyle(
                         fontWeight: FontWeight.w700, color: context.navyText)),
               ],
@@ -274,6 +513,13 @@ class _ApplianceCard extends StatelessWidget {
                         fontSize: 13,
                         color: warrantyColor,
                         fontWeight: FontWeight.w600)),
+                if ((appliance.notes ?? '').isNotEmpty)
+                  Text(
+                    appliance.notes!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 13, color: context.muted),
+                  ),
               ],
             ),
           ),

@@ -86,6 +86,28 @@ void main() {
     expect(r.completedCount, 1);
   });
 
+  test('score by area splits categories and names the reason', () {
+    final hvac = tpl('h1');
+    final safety = tpl('s1', safety: true);
+    final areas = computeHealthByCategory(
+      [
+        inst(hvac, now.add(const Duration(days: 60))),
+        inst(safety, now.subtract(const Duration(days: 3))),
+      ],
+      {'h1': hvac, 's1': safety},
+      now,
+    );
+    expect(areas.length, 2);
+    // Worst first: the overdue safety category leads.
+    expect(areas.first.category, 'Safety');
+    expect(areas.first.score, 91);
+    expect(areas.first.reason, contains('overdue'));
+    expect(areas.first.reason, contains('safety'));
+    final hvacArea = areas.firstWhere((a) => a.category == 'HVAC');
+    expect(hvacArea.score, 100);
+    expect(hvacArea.reason, 'All clear');
+  });
+
   test('grade bands', () {
     expect(gradeFor(95), 'A');
     expect(gradeFor(85), 'B');

@@ -110,6 +110,8 @@ class TaskInstance {
   final TaskStatus status;
   final DateTime? doneDate;
   final double? costPaid;
+  final String? doneBy; // who did it: "Me", a household member, or a pro
+  final String? doneNote; // free note left when the job was completed
   final DateTime updatedAt;
 
   TaskInstance({
@@ -122,6 +124,8 @@ class TaskInstance {
     this.status = TaskStatus.upcoming,
     this.doneDate,
     this.costPaid,
+    this.doneBy,
+    this.doneNote,
     required this.updatedAt,
   });
 
@@ -145,6 +149,8 @@ class TaskInstance {
         'status': status.name,
         'doneDate': doneDate == null ? null : isoDate(doneDate!),
         'costPaid': costPaid,
+        'doneBy': doneBy,
+        'doneNote': doneNote,
         'updatedAt': updatedAt.toIso8601String(),
       };
 
@@ -158,6 +164,8 @@ class TaskInstance {
         status: TaskStatus.values.byName(m['status'] as String),
         doneDate: m['doneDate'] == null ? null : parseDate(m['doneDate'] as String),
         costPaid: (m['costPaid'] as num?)?.toDouble(),
+        doneBy: m['doneBy'] as String?,
+        doneNote: m['doneNote'] as String?,
         updatedAt: DateTime.parse(m['updatedAt'] as String),
       );
 
@@ -165,6 +173,8 @@ class TaskInstance {
     TaskStatus? status,
     DateTime? doneDate,
     double? costPaid,
+    String? doneBy,
+    String? doneNote,
     DateTime? dueDate,
     DateTime? updatedAt,
   }) =>
@@ -178,6 +188,8 @@ class TaskInstance {
         status: status ?? this.status,
         doneDate: doneDate ?? this.doneDate,
         costPaid: costPaid ?? this.costPaid,
+        doneBy: doneBy ?? this.doneBy,
+        doneNote: doneNote ?? this.doneNote,
         updatedAt: updatedAt ?? this.updatedAt,
       );
 }
@@ -196,6 +208,7 @@ class Appliance {
   final int? receiptId;
   final String? imagePath; // local device path, may be null
   final bool imageSynced;
+  final String? notes; // filter sizes, manual info, quirks
   final DateTime updatedAt;
 
   Appliance({
@@ -212,6 +225,7 @@ class Appliance {
     this.receiptId,
     this.imagePath,
     this.imageSynced = false,
+    this.notes,
     required this.updatedAt,
   });
 
@@ -234,6 +248,7 @@ class Appliance {
         'receiptId': receiptId,
         'imagePath': imagePath,
         'imageSynced': imageSynced ? 1 : 0,
+        'notes': notes,
         'updatedAt': updatedAt.toIso8601String(),
       };
 
@@ -252,6 +267,121 @@ class Appliance {
         receiptId: m['receiptId'] as int?,
         imagePath: m['imagePath'] as String?,
         imageSynced: (m['imageSynced'] as int? ?? 0) == 1,
+        notes: m['notes'] as String?,
+        updatedAt: DateTime.parse(m['updatedAt'] as String),
+      );
+}
+
+/// A trusted pro the user calls: plumber, electrician, HVAC tech.
+/// Pure local data, like everything else in the app.
+class Contractor {
+  final int? id;
+  final int homeId;
+  final String name;
+  final String trade;
+  final String? phone;
+  final String? notes;
+  final DateTime updatedAt;
+
+  Contractor({
+    this.id,
+    required this.homeId,
+    required this.name,
+    required this.trade,
+    this.phone,
+    this.notes,
+    required this.updatedAt,
+  });
+
+  Map<String, Object?> toMap() => {
+        'id': id,
+        'homeId': homeId,
+        'name': name,
+        'trade': trade,
+        'phone': phone,
+        'notes': notes,
+        'updatedAt': updatedAt.toIso8601String(),
+      };
+
+  factory Contractor.fromMap(Map<String, Object?> m) => Contractor(
+        id: m['id'] as int?,
+        homeId: m['homeId'] as int,
+        name: m['name'] as String,
+        trade: m['trade'] as String,
+        phone: m['phone'] as String?,
+        notes: m['notes'] as String?,
+        updatedAt: DateTime.parse(m['updatedAt'] as String),
+      );
+}
+
+/// A free-form note about the home: paint colours, part numbers, codes,
+/// where things are. House Notes, kept simple.
+class HomeNote {
+  final int? id;
+  final int homeId;
+  final String title;
+  final String body;
+  final DateTime updatedAt;
+
+  HomeNote({
+    this.id,
+    required this.homeId,
+    required this.title,
+    required this.body,
+    required this.updatedAt,
+  });
+
+  Map<String, Object?> toMap() => {
+        'id': id,
+        'homeId': homeId,
+        'title': title,
+        'body': body,
+        'updatedAt': updatedAt.toIso8601String(),
+      };
+
+  factory HomeNote.fromMap(Map<String, Object?> m) => HomeNote(
+        id: m['id'] as int?,
+        homeId: m['homeId'] as int,
+        title: m['title'] as String,
+        body: m['body'] as String,
+        updatedAt: DateTime.parse(m['updatedAt'] as String),
+      );
+}
+
+/// One belonging worth listing for insurance: name, room, honest value.
+/// The light version, not a full inventory machine.
+class Belonging {
+  final int? id;
+  final int homeId;
+  final String name;
+  final String room;
+  final double value;
+  final DateTime updatedAt;
+
+  Belonging({
+    this.id,
+    required this.homeId,
+    required this.name,
+    required this.room,
+    required this.value,
+    required this.updatedAt,
+  });
+
+  Map<String, Object?> toMap() => {
+        'id': id,
+        'homeId': homeId,
+        'name': name,
+        'room': room,
+        'value': value,
+        'updatedAt': updatedAt.toIso8601String(),
+      };
+
+  factory Belonging.fromMap(Map<String, Object?> m) => Belonging(
+        id: m['id'] as int?,
+        homeId: m['homeId'] as int,
+        name: m['name'] as String,
+        room: m['room'] as String,
+        value: (m['value'] as num).toDouble(),
         updatedAt: DateTime.parse(m['updatedAt'] as String),
       );
 }

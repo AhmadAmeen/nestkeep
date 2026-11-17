@@ -15,7 +15,20 @@ class AppDb {
     final path = p.join(dir, 'nestkeep.db');
     _db = await openDatabase(
       path,
-      version: 1,
+      version: 2,
+      onUpgrade: (db, oldVersion, newVersion) async {
+        // v2 (build 5): completion details, appliance notes, and the
+        // contractor book, home notes and belongings tables. Purely
+        // additive: existing rows keep working untouched.
+        if (oldVersion < 2) {
+          await db.execute(
+              'ALTER TABLE task_instances ADD COLUMN doneBy TEXT');
+          await db.execute(
+              'ALTER TABLE task_instances ADD COLUMN doneNote TEXT');
+          await db.execute('ALTER TABLE appliances ADD COLUMN notes TEXT');
+          await _createV2Tables(db);
+        }
+      },
       onCreate: (db, _) async {
         await db.execute('''
           CREATE TABLE homes(
@@ -38,6 +51,8 @@ class AppDb {
             status TEXT NOT NULL DEFAULT 'upcoming',
             doneDate TEXT,
             costPaid REAL,
+            doneBy TEXT,
+            doneNote TEXT,
             updatedAt TEXT NOT NULL
           )''');
         await db.execute('''
@@ -55,6 +70,7 @@ class AppDb {
             receiptId INTEGER,
             imagePath TEXT,
             imageSynced INTEGER NOT NULL DEFAULT 0,
+            notes TEXT,
             updatedAt TEXT NOT NULL
           )''');
         await db.execute('''
@@ -86,9 +102,40 @@ class AppDb {
             key TEXT PRIMARY KEY,
             value TEXT
           )''');
+        await _createV2Tables(db);
       },
     );
     return _db!;
+  }
+
+  static Future<void> _createV2Tables(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS contractors(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        homeId INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        trade TEXT NOT NULL,
+        phone TEXT,
+        notes TEXT,
+        updatedAt TEXT NOT NULL
+      )''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS home_notes(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        homeId INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        body TEXT NOT NULL,
+        updatedAt TEXT NOT NULL
+      )''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS belongings(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        homeId INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        room TEXT NOT NULL,
+        value REAL NOT NULL DEFAULT 0,
+        updatedAt TEXT NOT NULL
+      )''');
   }
 
   // ---------- settings ----------
@@ -126,6 +173,9 @@ class AppDb {
     await db.delete('appliances', where: 'homeId = ?', whereArgs: [id]);
     await db.delete('receipts', where: 'homeId = ?', whereArgs: [id]);
     await db.delete('expenses', where: 'homeId = ?', whereArgs: [id]);
+    await db.delete('contractors', where: 'homeId = ?', whereArgs: [id]);
+    await db.delete('home_notes', where: 'homeId = ?', whereArgs: [id]);
+    await db.delete('belongings', where: 'homeId = ?', whereArgs: [id]);
     await db.delete('homes', where: 'id = ?', whereArgs: [id]);
   }
 
@@ -249,6 +299,93 @@ class AppDb {
     await db.delete('expenses', where: 'id = ?', whereArgs: [id]);
   }
 
+  // ---------- contractors ----------
+  static Future<int> insertContractor(Contractor c) async {
+    final db = await open();
+    final map = c.toMap()..remove('id');
+    return db.insert('contractors', map);
+  }
+
+  static Future<List<Contractor>> contractorsForHome(int homeId) async {
+    final db = await open();
+    final rows = await db.query(
+      'contractors',
+      where: 'homeId = ?',
+      whereArgs: [homeId],
+      orderBy: 'name',
+    );
+    return rows.map(Contractor.fromMap).toList();
+  }
+
+  static Future<void> updateContractor(Contractor c) async {
+    final db = await open();
+    await db.update('contractors', c.toMap(),
+        where: 'id = ?', whereArgs: [c.id]);
+  }
+
+  static Future<void> deleteContractor(int id) async {
+    final db = await open();
+    await db.delete('contractors', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ---------- home notes ----------
+  static Future<int> insertHomeNote(HomeNote n) async {
+    final db = await open();
+    final map = n.toMap()..remove('id');
+    return db.insert('home_notes', map);
+  }
+
+  static Future<List<HomeNote>> homeNotesForHome(int homeId) async {
+    final db = await open();
+    final rows = await db.query(
+      'home_notes',
+      where: 'homeId = ?',
+      whereArgs: [homeId],
+      orderBy: 'updatedAt DESC',
+    );
+    return rows.map(HomeNote.fromMap).toList();
+  }
+
+  static Future<void> updateHomeNote(HomeNote n) async {
+    final db = await open();
+    await db.update('home_notes', n.toMap(),
+        where: 'id = ?', whereArgs: [n.id]);
+  }
+
+  static Future<void> deleteHomeNote(int id) async {
+    final db = await open();
+    await db.delete('home_notes', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ---------- belongings ----------
+  static Future<int> insertBelonging(Belonging b) async {
+    final db = await open();
+    final map = b.toMap()..remove('id');
+    return db.insert('belongings', map);
+  }
+
+  static Future<List<Belonging>> belongingsForHome(int homeId) async {
+    final db = await open();
+    final rows = await db.query(
+      'belongings',
+      where: 'homeId = ?',
+      whereArgs: [homeId],
+      orderBy: 'name',
+    );
+    return rows.map(Belonging.fromMap).toList();
+  }
+
+  static Future<void> updateBelonging(Belonging b) async {
+    final db = await open();
+    await db.update('belongings', b.toMap(),
+        where: 'id = ?', whereArgs: [b.id]);
+  }
+
+  static Future<void> deleteBelonging(int id) async {
+    final db = await open();
+    await db.delete('belongings', where: 'id = ?', whereArgs: [id]);
+  }
+
   /// Wipe everything (used by in-app account deletion when the user also
   /// chooses to clear this phone).
   static Future<void> wipeAll() async {
@@ -257,6 +394,9 @@ class AppDb {
     await db.delete('appliances');
     await db.delete('receipts');
     await db.delete('expenses');
+    await db.delete('contractors');
+    await db.delete('home_notes');
+    await db.delete('belongings');
     await db.delete('homes');
     await db.delete('settings');
   }

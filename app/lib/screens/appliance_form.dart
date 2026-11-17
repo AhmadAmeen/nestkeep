@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import '../app_state.dart';
 import '../db.dart';
 import '../models.dart';
+import '../nameplate.dart';
 import '../sync.dart';
 import '../theme.dart';
 
@@ -28,6 +29,7 @@ class _ApplianceFormScreenState extends State<ApplianceFormScreen> {
   late final TextEditingController _serial;
   late final TextEditingController _store;
   late final TextEditingController _price;
+  late final TextEditingController _notes;
   late DateTime? _purchaseDate;
   late int _warrantyMonths;
   bool _scanning = false;
@@ -43,6 +45,7 @@ class _ApplianceFormScreenState extends State<ApplianceFormScreen> {
     _store = TextEditingController(text: a?.store ?? '');
     _price = TextEditingController(
         text: a?.price == null ? '' : a!.price!.toStringAsFixed(2));
+    _notes = TextEditingController(text: a?.notes ?? '');
     _purchaseDate = a?.purchaseDate;
     _warrantyMonths = a?.warrantyMonths ?? 12;
     _name.addListener(() {
@@ -53,8 +56,28 @@ class _ApplianceFormScreenState extends State<ApplianceFormScreen> {
   }
 
   Future<void> _scanNameplate() async {
-    final picked =
-        await ImagePicker().pickImage(source: ImageSource.camera);
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Take a photo'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Pick from gallery'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
+    final picked = await ImagePicker().pickImage(source: source);
     if (picked == null) return;
     setState(() => _scanning = true);
     try {
@@ -62,18 +85,12 @@ class _ApplianceFormScreenState extends State<ApplianceFormScreen> {
       final result =
           await recognizer.processImage(InputImage.fromFilePath(picked.path));
       await recognizer.close();
-      final text = result.text;
-      String? after(String label) {
-        final m = RegExp('$label[:\\s]+([A-Za-z0-9\\-/ ]{2,30})',
-                caseSensitive: false)
-            .firstMatch(text);
-        return m?.group(1)?.trim();
-      }
-
+      // Prefill only: the user checks and edits before anything saves.
+      final found = parseNameplate(result.text);
       setState(() {
-        _model.text = after('model') ?? _model.text;
-        _serial.text = after('serial') ?? after('s/n') ?? _serial.text;
-        _brand.text = after('brand') ?? after('make') ?? _brand.text;
+        if (found.brand != null) _brand.text = found.brand!;
+        if (found.model != null) _model.text = found.model!;
+        if (found.serial != null) _serial.text = found.serial!;
       });
     } catch (_) {
       // A failed plate scan just leaves the fields for typing.
@@ -99,6 +116,7 @@ class _ApplianceFormScreenState extends State<ApplianceFormScreen> {
       receiptId: widget.existing?.receiptId,
       imagePath: widget.existing?.imagePath,
       imageSynced: widget.existing?.imageSynced ?? false,
+      notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
       updatedAt: now,
     );
     if (widget.existing == null) {
@@ -189,6 +207,17 @@ class _ApplianceFormScreenState extends State<ApplianceFormScreen> {
           Text(
             'Pre-filled with the typical length for this appliance. Check your paperwork; the real terms win.',
             style: TextStyle(color: context.muted, fontSize: 12.5),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _notes,
+            maxLines: 4,
+            minLines: 2,
+            decoration: const InputDecoration(
+              labelText: 'Notes',
+              hintText: 'Filter size, manual link, quirks, who services it',
+              alignLabelWithHint: true,
+            ),
           ),
           const SizedBox(height: 24),
           FilledButton(onPressed: _save, child: const Text('Save appliance')),

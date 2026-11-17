@@ -24,6 +24,8 @@ HomeProfile profile({
   bool pool = false,
   bool septic = false,
   bool deck = true,
+  bool ev = false,
+  String climate = 'mild',
 }) =>
     HomeProfile(
       homeType: type,
@@ -37,6 +39,8 @@ HomeProfile profile({
       hasChimney: false,
       hasPool: pool,
       hasSeptic: septic,
+      hasEvCharger: ev,
+      climate: climate,
     );
 
 void main() {
@@ -69,5 +73,38 @@ void main() {
     expect(planReason(tpl('hvac-filter', 'HVAC'), p),
         'you heat with a forced-air furnace');
     expect(planReason(tpl('safety-smoke-test', 'Safety'), p), isNull);
+  });
+
+  test('EV charger jobs stay out until the home has a charger', () {
+    final check = tpl('ev-charger-check', 'Exterior', req: ['ev']);
+    final service = tpl('ev-charger-service', 'Exterior', req: ['ev']);
+    expect(templateApplies(check, profile()), isFalse);
+    expect(templateApplies(service, profile()), isFalse);
+    expect(templateApplies(check, profile(ev: true)), isTrue);
+    expect(templateApplies(service, profile(ev: true)), isTrue);
+    expect(planReason(check, profile(ev: true)), 'you charge an EV at home');
+  });
+
+  test('winterize job only applies where winters freeze', () {
+    final winterize = tpl('plumb-winterize-faucets', 'Plumbing');
+    expect(templateApplies(winterize, profile(climate: 'cold')), isTrue);
+    expect(templateApplies(winterize, profile(climate: 'mild')), isFalse);
+    expect(templateApplies(winterize, profile(climate: 'hot')), isFalse);
+    expect(planReason(winterize, profile(climate: 'cold')),
+        'you have freezing winters');
+  });
+
+  test('profile JSON round-trips EV and climate', () {
+    final p = profile(ev: true, climate: 'cold');
+    final back = HomeProfile.fromJson(p.toJson());
+    expect(back.hasEvCharger, isTrue);
+    expect(back.climate, 'cold');
+    final legacy = HomeProfile.fromJson(const {
+      'homeType': 'house',
+      'heating': 'forced_air',
+      'cooling': 'central',
+    });
+    expect(legacy.hasEvCharger, isFalse);
+    expect(legacy.climate, 'mild');
   });
 }

@@ -4,6 +4,7 @@ import '../app_state.dart';
 import '../models.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import 'score_detail.dart';
 
 /// The Today screen: the approved front-page grid. One card per job,
 /// generous spacing, nothing repeated.
@@ -103,6 +104,9 @@ class TodayScreen extends StatelessWidget {
               Expanded(
                 flex: 55,
                 child: NkCard(
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => ScoreDetailScreen(state: state),
+                  )),
                   child: Column(
                     children: [
                       HealthRing(score: health.score, grade: health.grade),
@@ -111,6 +115,27 @@ class TodayScreen extends StatelessWidget {
                         health.statusSentence,
                         textAlign: TextAlign.center,
                         style: TextStyle(fontSize: 13.5, color: context.muted),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Score by area',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: context.isDark
+                                  ? NkColors.darkPrimary
+                                  : NkColors.lightPrimary,
+                            ),
+                          ),
+                          Icon(Icons.chevron_right,
+                              size: 16,
+                              color: context.isDark
+                                  ? NkColors.darkPrimary
+                                  : NkColors.lightPrimary),
+                        ],
                       ),
                     ],
                   ),

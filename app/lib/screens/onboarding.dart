@@ -37,6 +37,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   bool _well = false;
   bool _solar = false;
   bool _generator = false;
+  bool _evCharger = false;
+  String _climate = 'mild';
   bool _building = false;
 
   Future<void> _build() async {
@@ -64,6 +66,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       hasWell: _well,
       hasSolar: _solar,
       hasGenerator: _generator,
+      hasEvCharger: _evCharger,
+      climate: _climate,
     );
     await generatePlan(homeId, profile, widget.state.templates, now);
     await saveProfile(homeId, profile);
@@ -147,6 +151,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               onChanged: (v) => setState(() => _cooling = v),
             ),
             const SizedBox(height: 18),
+            _question('Winters where you live?'),
+            _chips(
+              value: _climate,
+              options: const [
+                ('cold', 'Freezing cold'),
+                ('mild', 'Mild'),
+                ('hot', 'Rarely cold'),
+              ],
+              onChanged: (v) => setState(() => _climate = v),
+            ),
+            const SizedBox(height: 18),
             _question('What does it have?'),
             Wrap(
               spacing: 8,
@@ -171,6 +186,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     (v) => setState(() => _solar = v)),
                 _toggle('Standby generator', _generator,
                     (v) => setState(() => _generator = v)),
+                _toggle('EV charger', _evCharger,
+                    (v) => setState(() => _evCharger = v)),
               ],
             ),
             const SizedBox(height: 8),

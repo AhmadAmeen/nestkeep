@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../actions.dart';
 import '../app_state.dart';
+import '../calendar.dart';
 import '../models.dart';
 import '../plan.dart';
 import '../theme.dart';
@@ -19,12 +20,18 @@ class TaskDetailScreen extends StatelessWidget {
       task.templateId == null ? null : state.templateById[task.templateId];
 
   Future<void> _markDone(BuildContext context) async {
-    final cost = await showDialog<double?>(
+    final result = await showDialog<_DoneResult>(
       context: context,
-      builder: (_) => const _CostDialog(),
+      builder: (_) => const _DoneDialog(),
     );
-    if (cost == null && !context.mounted) return;
-    await completeTask(state, task, costPaid: cost);
+    if (result == null && !context.mounted) return;
+    await completeTask(
+      state,
+      task,
+      costPaid: result?.cost,
+      doneBy: result?.doneBy,
+      doneNote: result?.note,
+    );
     if (context.mounted) Navigator.of(context).pop();
   }
 
@@ -253,6 +260,25 @@ class TaskDetailScreen extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: () async {
+              final ok = await addJobToCalendar(
+                title: task.title,
+                dueDate: task.dueDate,
+                description: jobDescription(task, tpl),
+              );
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(ok
+                      ? 'Opening your calendar. The job is prefilled; you save it there.'
+                      : 'No calendar app found on this phone.'),
+                ));
+              }
+            },
+            icon: const Icon(Icons.event_outlined, size: 19),
+            label: const Text('Add to calendar'),
+          ),
         ],
       ),
     );
@@ -270,37 +296,75 @@ class TaskDetailScreen extends StatelessWidget {
   }
 }
 
-class _CostDialog extends StatefulWidget {
-  const _CostDialog();
-
-  @override
-  State<_CostDialog> createState() => _CostDialogState();
+class _DoneResult {
+  final double cost;
+  final String? doneBy;
+  final String? note;
+  const _DoneResult(this.cost, this.doneBy, this.note);
 }
 
-class _CostDialogState extends State<_CostDialog> {
-  final _controller = TextEditingController();
+class _DoneDialog extends StatefulWidget {
+  const _DoneDialog();
+
+  @override
+  State<_DoneDialog> createState() => _DoneDialogState();
+}
+
+class _DoneDialogState extends State<_DoneDialog> {
+  final _cost = TextEditingController();
+  final _doneBy = TextEditingController();
+  final _note = TextEditingController();
+
+  _DoneResult _result(double cost) => _DoneResult(
+        cost,
+        _doneBy.text.trim().isEmpty ? null : _doneBy.text.trim(),
+        _note.text.trim().isEmpty ? null : _note.text.trim(),
+      );
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Done. What did it cost?'),
-      content: TextField(
-        controller: _controller,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: const InputDecoration(
-          prefixText: '\$ ',
-          hintText: '0 if you did it yourself',
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _cost,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Cost',
+                prefixText: '\$ ',
+                hintText: '0 if you did it yourself',
+              ),
+              autofocus: true,
+            ),
+            TextField(
+              controller: _doneBy,
+              decoration: const InputDecoration(
+                labelText: 'Done by',
+                hintText: "Me, or the pro's name",
+              ),
+            ),
+            TextField(
+              controller: _note,
+              decoration: const InputDecoration(
+                labelText: 'Note (optional)',
+                hintText: 'Anything worth remembering',
+              ),
+            ),
+          ],
         ),
-        autofocus: true,
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context, 0.0),
+          onPressed: () => Navigator.pop(context, _result(0.0)),
           child: const Text('Nothing'),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(
-              context, double.tryParse(_controller.text.trim()) ?? 0.0),
+              context, _result(double.tryParse(_cost.text.trim()) ?? 0.0)),
           child: const Text('Save'),
         ),
       ],

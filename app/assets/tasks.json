@@ -1817,6 +1817,58 @@
    ],
    "title": "Service the standby generator",
    "why": "Oil, plugs and filters are the whole life of a small standby engine. One service a year, before storm and freeze season, is what makes it start on the one night it matters."
+  },
+  {
+   "category": "Exterior",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 3,
+   "id": "ev-charger-check",
+   "ignoreCost": 800,
+   "minutes": 15,
+   "needs": [
+    "A dry cloth"
+   ],
+   "requiresAny": [
+    "ev"
+   ],
+   "seasons": [],
+   "steps": [
+    "Unplug the connector and look over the whole cable for cuts, kinks, crushed spots or scorch marks.",
+    "Check the connector pins are clean and straight, and wipe the handle with a dry cloth.",
+    "Press the charger's test button if it has one (GFCI test), then reset it and confirm the status light returns to normal.",
+    "Look and feel for heat damage: a plug or outlet that is warm after charging, or smells of hot plastic, means stop and call an electrician.",
+    "Coil the cable loosely and holster the connector so it stays dry and off the ground."
+   ],
+   "title": "Inspect the EV charger and cable",
+   "why": "The cable and connector take daily wear, weather and heat cycles. A damaged cable or a hot connection is a fire risk and can take the charger, or the car's charge port, with it."
+  },
+  {
+   "category": "Exterior",
+   "difficulty": "Medium",
+   "diyCost": 30,
+   "frequencyMonths": 12,
+   "id": "ev-charger-service",
+   "ignoreCost": 800,
+   "minutes": 30,
+   "needs": [
+    "A dry cloth",
+    "The charger's phone app (if it has one)",
+    "A licensed electrician if anything looks heat-damaged"
+   ],
+   "requiresAny": [
+    "ev"
+   ],
+   "seasons": [],
+   "steps": [
+    "Switch the charger off at the breaker before cleaning anything.",
+    "Wipe the housing and connector with a dry cloth; clean the contacts only the way the manual allows, never with water.",
+    "Check the wall mount is tight and the cable's strain relief is not pulling loose.",
+    "Turn the power back on and check the charger's app for firmware updates; install any waiting.",
+    "If terminals, the plug or the outlet show any heat discolouration, book a licensed electrician for a torque and connection check instead of charging on."
+   ],
+   "title": "Deep clean the EV charger and check for updates",
+   "why": "Connections loosen and corrode over a year of daily charging, and loose connections are what overheat. Firmware updates fix charging faults and safety issues the maker has found since install."
   }
  ],
  "version": 1

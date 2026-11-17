@@ -113,6 +113,94 @@ HealthResult computeHealth(
   );
 }
 
+/// One category's slice of the health score: same deduction rules as
+/// [computeHealth], applied to that category's jobs alone, plus the plain
+/// reason the number is what it is.
+class CategoryHealth {
+  final String category;
+  final int score;
+  final String grade;
+  final String reason;
+  final int overdueCount;
+  final int dueSoonCount;
+
+  const CategoryHealth({
+    required this.category,
+    required this.score,
+    required this.grade,
+    required this.reason,
+    required this.overdueCount,
+    required this.dueSoonCount,
+  });
+}
+
+List<CategoryHealth> computeHealthByCategory(
+  List<TaskInstance> instances,
+  Map<String, TaskTemplate> templates,
+  DateTime now,
+) {
+  final today = DateTime(now.year, now.month, now.day);
+  final byCategory = <String, List<TaskInstance>>{};
+  for (final t in instances) {
+    byCategory.putIfAbsent(t.category, () => []).add(t);
+  }
+  final results = <CategoryHealth>[];
+  for (final entry in byCategory.entries) {
+    var deduction = 0;
+    var dueSoonDeduction = 0;
+    var overdue = 0;
+    var dueSoon = 0;
+    var hasOverdueSafety = false;
+    for (final t in entry.value) {
+      if (t.status != TaskStatus.upcoming) continue;
+      final due = DateTime(t.dueDate.year, t.dueDate.month, t.dueDate.day);
+      final days = today.difference(due).inDays;
+      final tpl = t.templateId == null ? null : templates[t.templateId];
+      final isSafety = tpl?.isSafety ?? t.category == 'Safety';
+      final ignore = tpl?.ignoreCost ?? 0;
+      if (days > 0) {
+        overdue++;
+        if (isSafety) hasOverdueSafety = true;
+        final weeks = (days / 7).ceil();
+        if (isSafety) {
+          deduction += (8 + weeks).clamp(0, 14);
+        } else if (ignore >= 1000) {
+          deduction += (5 + weeks).clamp(0, 10);
+        } else {
+          deduction += (3 + (weeks / 2).floor()).clamp(0, 6);
+        }
+      } else if (days >= -14) {
+        dueSoon++;
+        if (dueSoonDeduction < 5) dueSoonDeduction += 1;
+      }
+    }
+    final score = (100 - deduction - dueSoonDeduction).clamp(0, 100);
+    final String reason;
+    if (overdue > 0 && hasOverdueSafety) {
+      reason = '$overdue overdue, including a safety job';
+    } else if (overdue > 0) {
+      reason = '$overdue overdue';
+    } else if (dueSoon > 0) {
+      reason = '$dueSoon due in the next two weeks';
+    } else {
+      reason = 'All clear';
+    }
+    results.add(CategoryHealth(
+      category: entry.key,
+      score: score,
+      grade: gradeFor(score),
+      reason: reason,
+      overdueCount: overdue,
+      dueSoonCount: dueSoon,
+    ));
+  }
+  results.sort((a, b) {
+    final byScore = a.score.compareTo(b.score);
+    return byScore != 0 ? byScore : a.category.compareTo(b.category);
+  });
+  return results;
+}
+
 /// Streak = consecutive weeks, counting back from this week (or last week if
 /// nothing is done yet this week), with at least one completed task each.
 int computeStreakWeeks(List<TaskInstance> instances, DateTime now) {
