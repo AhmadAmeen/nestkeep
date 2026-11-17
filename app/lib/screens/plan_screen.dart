@@ -4,6 +4,7 @@ import '../actions.dart';
 import '../app_state.dart';
 import '../db.dart';
 import '../models.dart';
+import '../plan.dart';
 import '../reminders.dart';
 import '../sync.dart';
 import '../theme.dart';
@@ -67,6 +68,24 @@ class PlanScreen extends StatelessWidget {
           'Built for your home from its systems and the season. Tap any job for the full guide.',
           style: TextStyle(color: context.muted),
         ),
+        if (state.profileFor(state.activeHome?.id) != null) ...[
+          const SizedBox(height: 6),
+          Builder(builder: (context) {
+            final profile = state.profileFor(state.activeHome?.id)!;
+            final included = state.templates
+                .where((t) => templateApplies(t, profile))
+                .length;
+            final leftOut = state.templates.length - included;
+            return Text(
+              'Built from your answers: $included jobs in your plan, '
+              '$leftOut left out because they do not apply to your home.',
+              style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color: context.navyText),
+            );
+          }),
+        ],
         if (overdue.isNotEmpty) ...[
           const SizedBox(height: 20),
           const SectionHeading('Overdue'),

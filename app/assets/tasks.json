@@ -1605,6 +1605,218 @@
    ],
    "title": "Check alarm placement coverage",
    "why": "Alarms only in hallways miss the bedrooms where most fatal fires start; coverage, not count, is what protects sleepers."
+  },
+  {
+   "category": "Exterior",
+   "difficulty": "Medium",
+   "diyCost": 25,
+   "frequencyMonths": 1,
+   "id": "pool-filter",
+   "ignoreCost": 900,
+   "minutes": 45,
+   "needs": [
+    "Garden hose",
+    "Filter cleaner or degreaser",
+    "Pool skimmer net"
+   ],
+   "requiresAny": [
+    "pool"
+   ],
+   "seasons": [
+    "spring",
+    "summer",
+    "fall"
+   ],
+   "steps": [
+    "Turn the pump off at the timer or switch.",
+    "Empty the skimmer and pump baskets of leaves and debris.",
+    "Remove the filter and rinse it top to bottom with a garden hose, working between the pleats on cartridge filters.",
+    "Soak heavily soiled cartridges overnight in filter cleaner, then rinse again.",
+    "Reassemble, turn the pump on, and note the clean pressure reading; a rise of 8 to 10 psi over this number is your next cleaning signal."
+   ],
+   "title": "Clean the pool filter and pump basket",
+   "why": "A clogged filter strains the pump, clouds the water and lets algae take hold. Pumps are one of the priciest parts of a pool to replace."
+  },
+  {
+   "category": "Exterior",
+   "difficulty": "Easy",
+   "diyCost": 20,
+   "frequencyMonths": 1,
+   "id": "pool-chemistry",
+   "ignoreCost": 700,
+   "minutes": 20,
+   "needs": [
+    "Test strips or a liquid test kit",
+    "Chlorine and pH adjusters as needed"
+   ],
+   "requiresAny": [
+    "pool"
+   ],
+   "seasons": [],
+   "steps": [
+    "Dip a test strip or take a sample elbow-deep, away from the jets.",
+    "Check chlorine (aim 1 to 3 ppm) and pH (aim 7.2 to 7.6).",
+    "Adjust one chemical at a time, run the pump for an hour, then retest.",
+    "For a hot tub, also check the waterline and filter rinse weekly in heavy use months."
+   ],
+   "title": "Test and balance pool or hot tub water",
+   "why": "Unbalanced water eats heaters, pumps and liners, and grows bacteria fast in warm water. Five minutes of testing prevents most of it."
+  },
+  {
+   "category": "Plumbing",
+   "difficulty": "Pro",
+   "diyCost": 450,
+   "frequencyMonths": 48,
+   "id": "septic-pump",
+   "ignoreCost": 12000,
+   "minutes": 60,
+   "needs": [
+    "A licensed septic pumping service"
+   ],
+   "requiresAny": [
+    "septic"
+   ],
+   "seasons": [],
+   "steps": [
+    "Find your last pumping record; most tanks need pumping every 3 to 5 years depending on household size.",
+    "Book a licensed septic service and ask them to inspect the baffles and effluent filter while the tank is open.",
+    "Keep the receipt and note the date and the sludge level they report; it sets your next interval.",
+    "Until the next pump: spread laundry across the week and keep grease, wipes and chemicals out of drains."
+   ],
+   "title": "Pump the septic tank",
+   "why": "A full tank pushes solids into the drain field, and a failed drain field is one of the most expensive repairs a home can need. Pumping is cheap insurance."
+  },
+  {
+   "category": "Plumbing",
+   "difficulty": "Easy",
+   "diyCost": 40,
+   "frequencyMonths": 12,
+   "id": "well-test",
+   "ignoreCost": 2500,
+   "minutes": 20,
+   "needs": [
+    "A state-certified lab test kit (often from your county health office)"
+   ],
+   "requiresAny": [
+    "well"
+   ],
+   "seasons": [
+    "spring"
+   ],
+   "steps": [
+    "Order a test kit from a certified lab or your county health office.",
+    "Run the cold tap for several minutes, then collect the sample exactly as the kit directs, without touching the inside of the bottle.",
+    "Mail or drop off the sample the same day; labs test for coliform bacteria and nitrates at minimum.",
+    "Keep the report with your home records and retest sooner after any flood, well work, or change in taste or smell."
+   ],
+   "title": "Test well water for bacteria and nitrates",
+   "why": "Well water is unregulated: nobody tests it but you. Annual testing catches bacterial contamination and rising nitrates before they become a health problem."
+  },
+  {
+   "category": "Plumbing",
+   "difficulty": "Easy",
+   "diyCost": 35,
+   "frequencyMonths": 6,
+   "id": "well-filter",
+   "ignoreCost": 900,
+   "minutes": 15,
+   "needs": [
+    "Replacement sediment filter cartridge in your housing size",
+    "Filter wrench (usually supplied with the housing)"
+   ],
+   "requiresAny": [
+    "well"
+   ],
+   "seasons": [],
+   "steps": [
+    "Shut off the water before the filter housing and open a nearby tap to release pressure.",
+    "Unscrew the housing with the filter wrench and slide the old cartridge out.",
+    "Rinse the housing, check the O-ring and lightly grease it if it looks dry.",
+    "Fit the new cartridge, tighten the housing hand-tight plus a quarter turn, and restore water slowly, checking for drips."
+   ],
+   "title": "Replace the well sediment filter",
+   "why": "A clogged sediment filter drops water pressure through the whole house and lets grit reach pumps, softeners and appliances."
+  },
+  {
+   "category": "Exterior",
+   "difficulty": "Easy",
+   "diyCost": 20,
+   "frequencyMonths": 6,
+   "id": "solar-clean",
+   "ignoreCost": 400,
+   "minutes": 30,
+   "needs": [
+    "Garden hose",
+    "Soft brush or squeegee on a pole",
+    "Mild soap (optional)"
+   ],
+   "requiresAny": [
+    "solar"
+   ],
+   "seasons": [
+    "spring",
+    "fall"
+   ],
+   "steps": [
+    "Work early in the morning when panels are cool; never spray cold water on hot panels.",
+    "From the ground or a stable ladder position, rinse panels with a garden hose; never pressure wash.",
+    "Wash stubborn dirt with a soft brush and plain water or a little mild soap, then rinse.",
+    "While you are looking: check for cracked glass, loose mounts, chewed cables and new shading from growing trees. Compare this month's output in your inverter app with the same month last year."
+   ],
+   "title": "Clean and inspect solar panels",
+   "why": "Dust, pollen and bird droppings quietly cut panel output, often by 10 percent or more. Cleaning twice a year keeps the system earning what it should."
+  },
+  {
+   "category": "Safety",
+   "difficulty": "Easy",
+   "diyCost": 0,
+   "frequencyMonths": 1,
+   "id": "gen-test",
+   "ignoreCost": 3000,
+   "minutes": 15,
+   "needs": [
+    "Nothing but 15 minutes"
+   ],
+   "requiresAny": [
+    "generator"
+   ],
+   "seasons": [],
+   "steps": [
+    "Start the generator and let it run for 10 to 15 minutes; many models self-test weekly, this confirms it under your eye.",
+    "If it can carry load safely, let it power part of the house briefly and listen for surging or rough running.",
+    "Check oil level, look for leaks, and clear leaves or nests from the enclosure and exhaust.",
+    "Note the run hours from the meter; service intervals are based on them."
+   ],
+   "title": "Run the standby generator under load",
+   "why": "Generators fail silently in the months nobody needs them, then fail loudly during the outage they were bought for. A short monthly run keeps seals wet, batteries charged and problems visible."
+  },
+  {
+   "category": "Safety",
+   "difficulty": "Medium",
+   "diyCost": 90,
+   "frequencyMonths": 12,
+   "id": "gen-service",
+   "ignoreCost": 3000,
+   "minutes": 45,
+   "needs": [
+    "Engine oil and filter for your model",
+    "Spark plug",
+    "Air filter"
+   ],
+   "requiresAny": [
+    "generator"
+   ],
+   "seasons": [
+    "fall"
+   ],
+   "steps": [
+    "With the generator off and cool, change the oil and oil filter.",
+    "Replace the spark plug and air filter, or clean them if your manual allows.",
+    "Check battery terminals for corrosion and top up the fuel stabilizer if it runs on stored fuel.",
+    "Run it for five minutes, confirm clean startup and no warning lights, and log the service date and run hours."
+   ],
+   "title": "Service the standby generator",
+   "why": "Oil, plugs and filters are the whole life of a small standby engine. One service a year, before storm and freeze season, is what makes it start on the one night it matters."
   }
  ],
  "version": 1

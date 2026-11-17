@@ -8,6 +8,7 @@ import 'db.dart';
 import 'models.dart';
 import 'reminders.dart';
 import 'screens/expenses.dart';
+import 'screens/intro.dart';
 import 'screens/my_home.dart';
 import 'screens/onboarding.dart';
 import 'screens/paywall.dart';
@@ -41,18 +42,23 @@ class _NestKeepAppState extends State<NestKeepApp> {
   final AppState state = AppState();
   final Billing billing = Billing();
   ThemeMode themeMode = ThemeMode.system;
+  bool introSeen = false;
 
   @override
   void initState() {
     super.initState();
     state.init().then((_) async {
       final saved = await AppDb.getSetting('themeMode');
-      if (saved != null) {
+      final seenIntro = await AppDb.getSetting('introSeen');
+      if (saved != null || seenIntro != null) {
         setState(() {
-          themeMode = ThemeMode.values.firstWhere(
-            (m) => m.name == saved,
-            orElse: () => ThemeMode.system,
-          );
+          if (saved != null) {
+            themeMode = ThemeMode.values.firstWhere(
+              (m) => m.name == saved,
+              orElse: () => ThemeMode.system,
+            );
+          }
+          introSeen = seenIntro == '1';
         });
       }
       await billing.init(state);
@@ -79,11 +85,17 @@ class _NestKeepAppState extends State<NestKeepApp> {
         animation: state,
         builder: (context, _) {
           if (!state.loaded) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
+            return const SplashScreen();
           }
           if (!state.hasHome) {
+            if (!introSeen) {
+              return IntroScreen(
+                onDone: () async {
+                  await AppDb.setSetting('introSeen', '1');
+                  setState(() => introSeen = true);
+                },
+              );
+            }
             return OnboardingScreen(state: state, onDone: () => setState(() {}));
           }
           return Shell(
@@ -96,6 +108,57 @@ class _NestKeepAppState extends State<NestKeepApp> {
             },
           );
         },
+      ),
+    );
+  }
+}
+
+/// Branded splash shown while the local state loads (the load is fast;
+/// the splash keeps the first paint on-brand instead of a bare spinner).
+class SplashScreen extends StatelessWidget {
+  const SplashScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 88,
+              height: 88,
+              decoration: BoxDecoration(
+                color: context.isDark
+                    ? NkColors.darkPrimary
+                    : NkColors.lightNavy,
+                borderRadius: BorderRadius.circular(26),
+              ),
+              child: const Icon(Icons.home, color: Colors.white, size: 46),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'NestKeep',
+              style: TextStyle(
+                fontSize: 31,
+                fontWeight: FontWeight.w800,
+                color: context.navyText,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              'Your home, handled.',
+              style: TextStyle(fontSize: 15, color: context.muted),
+            ),
+            const SizedBox(height: 30),
+            const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2.4),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -139,6 +202,15 @@ class _ShellState extends State<Shell> {
     ));
   }
 
+  void _openIntro() {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (ctx) => IntroScreen(
+        replay: true,
+        onDone: () => Navigator.of(ctx).pop(),
+      ),
+    ));
+  }
+
   void _openExpenses() {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => Scaffold(
@@ -169,6 +241,7 @@ class _ShellState extends State<Shell> {
         themeMode: widget.themeMode,
         onThemeChanged: widget.onThemeChanged,
         onOpenPaywall: _openPaywall,
+        onShowIntro: _openIntro,
         onAddHome: () => Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => OnboardingScreen(
             state: state,

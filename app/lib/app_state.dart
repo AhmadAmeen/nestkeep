@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'db.dart';
 import 'health.dart';
 import 'models.dart';
+import 'plan.dart';
 
 /// App-wide state, deliberately simple: one ChangeNotifier holding the
 /// active home and its data, reloaded from SQLite after every mutation.
@@ -14,7 +15,11 @@ class AppState extends ChangeNotifier {
   List<TaskTemplate> templates = [];
   Map<String, TaskTemplate> templateById = {};
   List<Home> homes = [];
+  Map<int, HomeProfile> profiles = {};
   Home? activeHome;
+
+  HomeProfile? profileFor(int? homeId) =>
+      homeId == null ? null : profiles[homeId];
   List<TaskInstance> tasks = [];
   List<Appliance> appliances = [];
   List<Expense> expenses = [];
@@ -49,6 +54,10 @@ class AppState extends ChangeNotifier {
     }
 
     homes = await AppDb.homes();
+    for (final h in homes) {
+      final p = await loadProfile(h.id!);
+      if (p != null) profiles[h.id!] = p;
+    }
     final activeId = await AppDb.getSetting('activeHomeId');
     if (homes.isNotEmpty) {
       activeHome = homes.firstWhere(
@@ -64,6 +73,10 @@ class AppState extends ChangeNotifier {
   Future<void> reload() async {
     if (activeHome == null) return;
     final id = activeHome!.id!;
+    if (!profiles.containsKey(id)) {
+      final p = await loadProfile(id);
+      if (p != null) profiles[id] = p;
+    }
     tasks = await AppDb.tasksForHome(id);
     appliances = await AppDb.appliancesForHome(id);
     expenses = await AppDb.expensesForHome(id);

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../actions.dart';
 import '../app_state.dart';
 import '../models.dart';
+import '../plan.dart';
 import '../theme.dart';
 import '../widgets.dart';
 
@@ -78,6 +79,25 @@ class TaskDetailScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
+          if (t != null &&
+              state.profileFor(task.homeId) != null &&
+              planReason(t, state.profileFor(task.homeId)!) != null) ...[
+            Row(
+              children: [
+                const Icon(Icons.check_circle_outline,
+                    size: 19, color: NkColors.green),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'In your plan because '
+                    '${planReason(t, state.profileFor(task.homeId)!)}.',
+                    style: TextStyle(fontSize: 13.5, color: context.muted),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+          ],
           if (t != null) ...[
             NkCard(
               child: Column(

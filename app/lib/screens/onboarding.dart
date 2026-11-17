@@ -32,6 +32,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   bool _sprinklers = false;
   bool _softener = false;
   bool _chimney = false;
+  bool _pool = false;
+  bool _septic = false;
+  bool _well = false;
+  bool _solar = false;
+  bool _generator = false;
   bool _building = false;
 
   Future<void> _build() async {
@@ -54,8 +59,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       hasSprinklers: _sprinklers,
       hasSoftener: _softener,
       hasChimney: _chimney,
+      hasPool: _pool,
+      hasSeptic: _septic,
+      hasWell: _well,
+      hasSolar: _solar,
+      hasGenerator: _generator,
     );
     await generatePlan(homeId, profile, widget.state.templates, now);
+    await saveProfile(homeId, profile);
     widget.state.homes = await AppDb.homes();
     final home = widget.state.homes.firstWhere((h) => h.id == homeId);
     await widget.state.setActiveHome(home);
@@ -151,7 +162,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     (v) => setState(() => _softener = v)),
                 _toggle('Fireplace / chimney', _chimney,
                     (v) => setState(() => _chimney = v)),
+                _toggle('Pool / hot tub', _pool,
+                    (v) => setState(() => _pool = v)),
+                _toggle('Septic system', _septic,
+                    (v) => setState(() => _septic = v)),
+                _toggle('Well water', _well, (v) => setState(() => _well = v)),
+                _toggle('Solar panels', _solar,
+                    (v) => setState(() => _solar = v)),
+                _toggle('Standby generator', _generator,
+                    (v) => setState(() => _generator = v)),
               ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Only jobs that fit your answers make your plan. Everything '
+              'else is left out, and every job in the plan says why it is there.',
+              style: TextStyle(color: context.muted, fontSize: 13, height: 1.4),
             ),
             const SizedBox(height: 28),
             FilledButton(

@@ -21,6 +21,7 @@ class ProfileScreen extends StatelessWidget {
   final void Function(ThemeMode) onThemeChanged;
   final VoidCallback onOpenPaywall;
   final VoidCallback onAddHome;
+  final VoidCallback? onShowIntro;
 
   const ProfileScreen({
     super.key,
@@ -29,6 +30,7 @@ class ProfileScreen extends StatelessWidget {
     required this.onThemeChanged,
     required this.onOpenPaywall,
     required this.onAddHome,
+    this.onShowIntro,
   });
 
   @override
@@ -116,6 +118,76 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
+        const SectionHeading('Your plan'),
+        const SizedBox(height: 10),
+        NkCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    state.isPro ? 'NestKeep Pro' : 'Free plan',
+                    style: TextStyle(
+                        fontSize: 16.5,
+                        fontWeight: FontWeight.w700,
+                        color: context.navyText),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: state.isPro
+                          ? NkColors.green.withValues(alpha: 0.14)
+                          : context.line,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      state.isPro ? 'PRO' : 'FREE',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.6,
+                        color: state.isPro ? NkColors.green : context.muted,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (!state.isPro) ...[
+                for (final f in const [
+                  'Seasonal plan and reminders for 1 home',
+                  'Home health score that shows its work',
+                  'Warranty vault for your appliances',
+                  'Unlimited receipt scanning',
+                ])
+                  _includedRow(context, f),
+                const SizedBox(height: 6),
+                Text(
+                  'Pro adds up to 3 homes, receipt photos saved in the app, '
+                  'full cost history, a PDF home report and backup export.',
+                  style: TextStyle(
+                      fontSize: 13.5, color: context.muted, height: 1.4),
+                ),
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: onOpenPaywall,
+                  child: const Text('See NestKeep Pro'),
+                ),
+              ] else
+                Text(
+                  'Everything is unlocked: up to 3 homes, receipt photos '
+                  'saved and synced, full cost history, PDF home report '
+                  'and backup export.',
+                  style: TextStyle(
+                      fontSize: 13.5, color: context.muted, height: 1.4),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
         const SectionHeading('Your homes'),
         const SizedBox(height: 10),
         for (final h in state.homes)
@@ -124,23 +196,28 @@ class ProfileScreen extends StatelessWidget {
             child: NkCard(
               onTap: () => state.setActiveHome(h),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Icon(
                     h.id == state.activeHome?.id
                         ? Icons.radio_button_checked
                         : Icons.radio_button_unchecked,
                     color: NkColors.green,
+                    size: 22,
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(h.name,
-                            style: const TextStyle(fontWeight: FontWeight.w600)),
-                        Text(h.addressLine,
-                            style:
-                                TextStyle(fontSize: 13, color: context.muted)),
+                            style: const TextStyle(
+                                fontSize: 15.5, fontWeight: FontWeight.w600)),
+                        if (h.addressLine.isNotEmpty)
+                          Text(h.addressLine,
+                              style: TextStyle(
+                                  fontSize: 13, color: context.muted)),
                       ],
                     ),
                   ),
@@ -208,7 +285,19 @@ class ProfileScreen extends StatelessWidget {
                 trailing: const Icon(Icons.ios_share_outlined),
                 onTap: state.isPro ? () => _export(context) : onOpenPaywall,
               ),
-              const Divider(height: 1),
+              if (onShowIntro != null) ...[
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('How NestKeep works'),
+                  subtitle: Text(
+                    'The five-slide tour, any time',
+                    style: TextStyle(color: context.muted),
+                  ),
+                  trailing: const Icon(Icons.chevron_right, size: 20),
+                  onTap: onShowIntro,
+                ),
+                const Divider(height: 1),
+              ],
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Privacy policy'),
@@ -233,11 +322,27 @@ class ProfileScreen extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'NestKeep 1.0 · Made to be kept: no ads, no selling data, your home data lives on your phone.',
+          'NestKeep 1.0.1 · Made to be kept: no ads, no selling data, your home data lives on your phone.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 12.5, color: context.muted),
         ),
       ],
+    );
+  }
+
+  Widget _includedRow(BuildContext context, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 7),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.check, size: 18, color: NkColors.green),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Text(text, style: const TextStyle(fontSize: 14.5)),
+          ),
+        ],
+      ),
     );
   }
 
