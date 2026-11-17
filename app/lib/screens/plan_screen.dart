@@ -167,6 +167,11 @@ class PlanScreen extends StatelessWidget {
   String _shortDate(DateTime d) => '${d.month}/${d.day}/${d.year}';
 
   Future<void> _addCustom(BuildContext context) async {
+    if (!state.isPro &&
+        activeCustomJobs(state.tasks) >= freeCustomJobLimit) {
+      onOpenPaywall();
+      return;
+    }
     final result = await showDialog<_CustomJob>(
       context: context,
       builder: (_) => const _CustomJobDialog(),

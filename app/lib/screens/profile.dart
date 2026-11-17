@@ -163,7 +163,7 @@ class ProfileScreen extends StatelessWidget {
                   'Home health score that shows its work',
                   'Warranty vault for your appliances',
                   'Unlimited receipt scanning',
-                  'Add your own jobs, as many as you like',
+                  'Add your own jobs (10 at a time)',
                 ])
                   _includedRow(context, f),
                 const SizedBox(height: 6),
@@ -335,7 +335,7 @@ class ProfileScreen extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'NestKeep 1.0.4 · Made to be kept: no ads, no selling data, your home data lives on your phone.',
+          'NestKeep 1.0.5 · Made to be kept: no ads, no selling data, your home data lives on your phone.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 12.5, color: context.muted),
         ),

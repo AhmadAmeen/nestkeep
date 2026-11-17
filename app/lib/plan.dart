@@ -269,3 +269,13 @@ Future<int> generatePlan(
   }
   return applicable.length;
 }
+
+/// How many of their own jobs a free plan can hold at one time.
+/// Pro is unlimited.
+const freeCustomJobLimit = 10;
+
+/// Jobs the user added themselves (no template) that are still live in
+/// the plan. Done and skipped jobs free their slot back up.
+int activeCustomJobs(List<TaskInstance> tasks) => tasks
+    .where((t) => t.templateId == null && t.status == TaskStatus.upcoming)
+    .length;
