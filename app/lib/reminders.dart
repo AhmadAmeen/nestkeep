@@ -5,9 +5,11 @@ import 'package:timezone/timezone.dart' as tz;
 import 'models.dart';
 
 /// Local reminders. Scheduled on-device only: one nudge 3 days before a job
-/// is due and one on the day, both at 9 in the morning. Exact alarms are
-/// requested so OEM battery saving does not silently swallow them; if the
-/// user declines, the in-app Today screen still carries everything.
+/// is due and one on the day, both at 9 in the morning. Scheduling is
+/// inexact on purpose: these are day-level nudges, so the app never asks
+/// for the exact-alarm permission, whose request throws the user out of
+/// the app into system Settings. If notifications are declined, the
+/// in-app Today screen still carries everything.
 class Reminders {
   static final _plugin = FlutterLocalNotificationsPlugin();
   static bool _ready = false;
@@ -26,7 +28,6 @@ class Reminders {
     final android =
         _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
     await android?.requestNotificationsPermission();
-    await android?.requestExactAlarmsPermission();
   }
 
   static tz.TZDateTime _atNineLocal(DateTime date) {
@@ -72,7 +73,7 @@ class Reminders {
           slots[i].$2,
           when,
           details,
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         );
       }
       scheduled++;
