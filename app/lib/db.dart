@@ -15,7 +15,7 @@ class AppDb {
     final path = p.join(dir, 'nestkeep.db');
     _db = await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onUpgrade: (db, oldVersion, newVersion) async {
         // v2 (build 5): completion details, appliance notes, and the
         // contractor book, home notes and belongings tables. Purely
@@ -27,6 +27,13 @@ class AppDb {
               'ALTER TABLE task_instances ADD COLUMN doneNote TEXT');
           await db.execute('ALTER TABLE appliances ADD COLUMN notes TEXT');
           await _createV2Tables(db);
+        }
+        // v3 (build 9): appliance expected lifespan, and the table for
+        // photos and invoices attached to an appliance. Additive again.
+        if (oldVersion < 3) {
+          await db.execute(
+              'ALTER TABLE appliances ADD COLUMN lifespanYears INTEGER');
+          await _createV3Tables(db);
         }
       },
       onCreate: (db, _) async {
@@ -65,6 +72,7 @@ class AppDb {
             serial TEXT,
             purchaseDate TEXT,
             warrantyMonths INTEGER NOT NULL DEFAULT 12,
+            lifespanYears INTEGER,
             store TEXT,
             price REAL,
             receiptId INTEGER,
@@ -103,9 +111,20 @@ class AppDb {
             value TEXT
           )''');
         await _createV2Tables(db);
+        await _createV3Tables(db);
       },
     );
     return _db!;
+  }
+
+  static Future<void> _createV3Tables(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS appliance_files(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        applianceId INTEGER NOT NULL,
+        path TEXT NOT NULL,
+        createdAt INTEGER NOT NULL
+      )''');
   }
 
   static Future<void> _createV2Tables(Database db) async {
@@ -170,6 +189,10 @@ class AppDb {
   static Future<void> deleteHome(int id) async {
     final db = await open();
     await db.delete('task_instances', where: 'homeId = ?', whereArgs: [id]);
+    await db.execute(
+        'DELETE FROM appliance_files WHERE applianceId IN '
+        '(SELECT id FROM appliances WHERE homeId = ?)',
+        [id]);
     await db.delete('appliances', where: 'homeId = ?', whereArgs: [id]);
     await db.delete('receipts', where: 'homeId = ?', whereArgs: [id]);
     await db.delete('expenses', where: 'homeId = ?', whereArgs: [id]);
@@ -233,7 +256,32 @@ class AppDb {
 
   static Future<void> deleteAppliance(int id) async {
     final db = await open();
+    await db.delete('appliance_files',
+        where: 'applianceId = ?', whereArgs: [id]);
     await db.delete('appliances', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ---------- appliance files (photos + invoices, Pro, local only) ----------
+  static Future<int> insertApplianceFile(ApplianceFile f) async {
+    final db = await open();
+    final map = f.toMap()..remove('id');
+    return db.insert('appliance_files', map);
+  }
+
+  static Future<List<ApplianceFile>> filesForAppliance(int applianceId) async {
+    final db = await open();
+    final rows = await db.query(
+      'appliance_files',
+      where: 'applianceId = ?',
+      whereArgs: [applianceId],
+      orderBy: 'createdAt',
+    );
+    return rows.map(ApplianceFile.fromMap).toList();
+  }
+
+  static Future<void> deleteApplianceFile(int id) async {
+    final db = await open();
+    await db.delete('appliance_files', where: 'id = ?', whereArgs: [id]);
   }
 
   // ---------- receipts ----------
@@ -391,6 +439,7 @@ class AppDb {
   static Future<void> wipeAll() async {
     final db = await open();
     await db.delete('task_instances');
+    await db.delete('appliance_files');
     await db.delete('appliances');
     await db.delete('receipts');
     await db.delete('expenses');

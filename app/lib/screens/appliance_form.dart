@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../app_state.dart';
 import '../db.dart';
+import '../lifespan.dart';
 import '../models.dart';
 import '../nameplate.dart';
 import '../reminders.dart';
@@ -17,7 +18,17 @@ class ApplianceFormScreen extends StatefulWidget {
   final AppState state;
   final Appliance? existing;
 
-  const ApplianceFormScreen({super.key, required this.state, this.existing});
+  /// Where to send a free user who tries to add appliance number six.
+  /// Optional so older call sites keep working; without it the form
+  /// explains the limit in a snackbar instead.
+  final VoidCallback? onOpenPaywall;
+
+  const ApplianceFormScreen({
+    super.key,
+    required this.state,
+    this.existing,
+    this.onOpenPaywall,
+  });
 
   @override
   State<ApplianceFormScreen> createState() => _ApplianceFormScreenState();
@@ -31,9 +42,11 @@ class _ApplianceFormScreenState extends State<ApplianceFormScreen> {
   late final TextEditingController _store;
   late final TextEditingController _price;
   late final TextEditingController _notes;
+  late final TextEditingController _lifeYears;
   late DateTime? _purchaseDate;
   late int _warrantyMonths;
   bool _scanning = false;
+  bool _lifeEdited = false;
 
   @override
   void initState() {
@@ -47,11 +60,18 @@ class _ApplianceFormScreenState extends State<ApplianceFormScreen> {
     _price = TextEditingController(
         text: a?.price == null ? '' : a!.price!.toStringAsFixed(2));
     _notes = TextEditingController(text: a?.notes ?? '');
+    _lifeYears = TextEditingController(
+        text: a == null ? '' : effectiveLifespan(a).toString());
     _purchaseDate = a?.purchaseDate;
     _warrantyMonths = a?.warrantyMonths ?? 12;
     _name.addListener(() {
       if (widget.existing == null) {
         setState(() => _warrantyMonths = typicalWarrantyMonths(_name.text));
+        // Keep the expected-life field tracking the name until the
+        // user types their own number into it.
+        if (!_lifeEdited) {
+          _lifeYears.text = typicalLifespanYears(_name.text).toString();
+        }
       }
     });
   }
@@ -102,6 +122,25 @@ class _ApplianceFormScreenState extends State<ApplianceFormScreen> {
 
   Future<void> _save() async {
     if (_name.text.trim().isEmpty) return;
+    // Free plans track up to freeApplianceLimit appliances; a new one
+    // past that is a Pro moment. Editing an existing appliance is
+    // never blocked.
+    if (widget.existing == null &&
+        !widget.state.isPro &&
+        widget.state.appliances.length >= freeApplianceLimit) {
+      if (widget.onOpenPaywall != null) {
+        widget.onOpenPaywall!();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Free plans track up to $freeApplianceLimit appliances. '
+                'Pro tracks every appliance in the house.'),
+          ),
+        );
+      }
+      return;
+    }
     final now = DateTime.now();
     final a = Appliance(
       id: widget.existing?.id,
@@ -112,6 +151,7 @@ class _ApplianceFormScreenState extends State<ApplianceFormScreen> {
       serial: _serial.text.trim().isEmpty ? null : _serial.text.trim(),
       purchaseDate: _purchaseDate,
       warrantyMonths: _warrantyMonths,
+      lifespanYears: int.tryParse(_lifeYears.text.trim()),
       store: _store.text.trim().isEmpty ? null : _store.text.trim(),
       price: double.tryParse(_price.text.trim()),
       receiptId: widget.existing?.receiptId,
@@ -209,6 +249,21 @@ class _ApplianceFormScreenState extends State<ApplianceFormScreen> {
           ),
           Text(
             'Pre-filled with the typical length for this appliance. Check your paperwork; the real terms win.',
+            style: TextStyle(color: context.muted, fontSize: 12.5),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _lifeYears,
+            keyboardType: TextInputType.number,
+            onChanged: (_) => _lifeEdited = true,
+            decoration: const InputDecoration(
+              labelText: 'Expected life (years)',
+              hintText: 'e.g. 12',
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'How long this kind of appliance usually lasts. The life bar on My Home measures against it.',
             style: TextStyle(color: context.muted, fontSize: 12.5),
           ),
           const SizedBox(height: 16),

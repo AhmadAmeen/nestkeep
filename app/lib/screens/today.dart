@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../actions.dart';
 import '../app_state.dart';
 import '../models.dart';
 import '../theme.dart';
@@ -27,7 +28,9 @@ class TodayScreen extends StatelessWidget {
     final home = state.activeHome!;
     final health = state.health;
     final now = DateTime.now();
-    final nextTasks = state.upcoming.take(4).toList();
+    // The first upcoming job gets the Next up card; the list below
+    // starts from the second so no job appears twice on this screen.
+    final nextTasks = state.upcoming.skip(1).take(4).toList();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -89,7 +92,7 @@ class TodayScreen extends StatelessWidget {
             CircleAvatar(
               radius: 21,
               backgroundColor:
-                  context.isDark ? NkColors.darkPrimary : NkColors.lightNavy,
+                  context.isDark ? context.primary : NkColors.lightNavy,
               child: const Icon(Icons.home_rounded, color: Colors.white, size: 22),
             ),
           ],
@@ -125,16 +128,11 @@ class TodayScreen extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: context.isDark
-                                  ? NkColors.darkPrimary
-                                  : NkColors.lightPrimary,
+                              color: context.primary,
                             ),
                           ),
                           Icon(Icons.chevron_right,
-                              size: 16,
-                              color: context.isDark
-                                  ? NkColors.darkPrimary
-                                  : NkColors.lightPrimary),
+                              size: 16, color: context.primary),
                         ],
                       ),
                     ],
@@ -182,10 +180,7 @@ class TodayScreen extends StatelessWidget {
                         child: Row(
                           children: [
                             Icon(Icons.savings_outlined,
-                                color: context.isDark
-                                    ? NkColors.darkPrimary
-                                    : NkColors.lightPrimary,
-                                size: 28),
+                                color: context.primary, size: 28),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Column(
@@ -227,6 +222,78 @@ class TodayScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
+
+        // Next up: the single most pressing job, with its two actions
+        // right on the card.
+        if (state.upcoming.isNotEmpty) ...[
+          Builder(builder: (context) {
+            final next = state.upcoming.first;
+            final tpl = next.templateId == null
+                ? null
+                : state.templateById[next.templateId];
+            return NkCard(
+              onTap: () => onOpenTask(next),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'NEXT UP',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8,
+                      color: context.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    next.title,
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: context.navyText,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${dueLabel(next, now)}'
+                    '${tpl != null ? ' · ~${tpl.minutes} min' : ''}',
+                    style: TextStyle(fontSize: 13.5, color: context.muted),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: () => onQuickDone(next),
+                          style: FilledButton.styleFrom(
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 11),
+                            textStyle: const TextStyle(fontSize: 15),
+                          ),
+                          child: const Text('Mark done'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => snoozeTask(state, next, 1),
+                          style: OutlinedButton.styleFrom(
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 11),
+                            textStyle: const TextStyle(fontSize: 15),
+                          ),
+                          child: const Text('Later'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          }),
+          const SizedBox(height: 12),
+        ],
 
         // Action needed / Completed pair
         Row(
@@ -327,19 +394,24 @@ class TodayScreen extends StatelessWidget {
         ),
         const SizedBox(height: 22),
 
-        SectionHeading('Upcoming tasks',
-            actionLabel: 'See all', onAction: onSeeAllPlan),
-        const SizedBox(height: 10),
-        if (nextTasks.isEmpty)
-          NkCard(
-            child: Text(
-              'Nothing scheduled. Add a job from the Plan tab.',
-              style: TextStyle(color: context.muted),
-            ),
-          ),
-        for (final t in nextTasks) ...[
-          TaskCard(task: t, onTap: () => onOpenTask(t), onDone: () => onQuickDone(t)),
+        if (nextTasks.isNotEmpty || state.upcoming.isEmpty) ...[
+          SectionHeading('Upcoming tasks',
+              actionLabel: 'See all', onAction: onSeeAllPlan),
           const SizedBox(height: 10),
+          if (state.upcoming.isEmpty)
+            NkCard(
+              child: Text(
+                'Nothing scheduled. Add a job from the Plan tab.',
+                style: TextStyle(color: context.muted),
+              ),
+            ),
+          for (final t in nextTasks) ...[
+            TaskCard(
+                task: t,
+                onTap: () => onOpenTask(t),
+                onDone: () => onQuickDone(t)),
+            const SizedBox(height: 10),
+          ],
         ],
       ],
     );
@@ -347,13 +419,21 @@ class TodayScreen extends StatelessWidget {
 }
 
 /// One task, one card: icon tile, title, due label, quick-done circle.
+/// [minutes] is the library job's typical duration when known; the
+/// Plan passes it so rows can say how long a job takes.
 class TaskCard extends StatelessWidget {
   final TaskInstance task;
   final VoidCallback onTap;
   final VoidCallback onDone;
+  final int? minutes;
 
-  const TaskCard(
-      {super.key, required this.task, required this.onTap, required this.onDone});
+  const TaskCard({
+    super.key,
+    required this.task,
+    required this.onTap,
+    required this.onDone,
+    this.minutes,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -389,7 +469,8 @@ class TaskCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  dueLabel(task, now),
+                  '${dueLabel(task, now)}'
+                  '${minutes != null ? ' · ~$minutes min' : ''}',
                   style: TextStyle(
                     fontSize: 13,
                     color: overdue ? NkColors.red : context.muted,

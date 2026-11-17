@@ -76,39 +76,45 @@ class _NestKeepAppState extends State<NestKeepApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'NestKeep',
-      theme: nkLightTheme(),
-      darkTheme: nkDarkTheme(),
+    // The builder wraps the whole app so an accent change repaints the
+    // theme itself, not just the screens under it.
+    return AnimatedBuilder(
+      animation: state,
+      builder: (context, _) {
+        return MaterialApp(
+          title: 'NestKeep',
+          theme: nkLightTheme(state.accent),
+          darkTheme: nkDarkTheme(state.accent),
+          themeMode: themeMode,
+          home: _home(),
+        );
+      },
+    );
+  }
+
+  Widget _home() {
+    if (!state.loaded) {
+      return const SplashScreen();
+    }
+    if (!state.hasHome) {
+      if (!introSeen) {
+        return IntroScreen(
+          onDone: () async {
+            await AppDb.setSetting('introSeen', '1');
+            setState(() => introSeen = true);
+          },
+        );
+      }
+      return OnboardingScreen(state: state, onDone: () => setState(() {}));
+    }
+    return Shell(
+      state: state,
+      billing: billing,
       themeMode: themeMode,
-      home: AnimatedBuilder(
-        animation: state,
-        builder: (context, _) {
-          if (!state.loaded) {
-            return const SplashScreen();
-          }
-          if (!state.hasHome) {
-            if (!introSeen) {
-              return IntroScreen(
-                onDone: () async {
-                  await AppDb.setSetting('introSeen', '1');
-                  setState(() => introSeen = true);
-                },
-              );
-            }
-            return OnboardingScreen(state: state, onDone: () => setState(() {}));
-          }
-          return Shell(
-            state: state,
-            billing: billing,
-            themeMode: themeMode,
-            onThemeChanged: (mode) async {
-              setState(() => themeMode = mode);
-              await AppDb.setSetting('themeMode', mode.name);
-            },
-          );
-        },
-      ),
+      onThemeChanged: (mode) async {
+        setState(() => themeMode = mode);
+        await AppDb.setSetting('themeMode', mode.name);
+      },
     );
   }
 }
@@ -229,6 +235,7 @@ class _ShellState extends State<Shell> {
         state: state,
         onOpenScan: () => setState(() => _tab = 2),
         onOpenCosts: _openExpenses,
+        onOpenPaywall: _openPaywall,
       ),
       ProfileScreen(
         state: state,

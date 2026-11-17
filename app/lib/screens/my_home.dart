@@ -3,9 +3,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
+import '../lifespan.dart';
 import '../models.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import 'appliance_detail.dart';
 import 'appliance_form.dart';
 import 'belonging_form.dart';
 import 'contractor_form.dart';
@@ -18,12 +20,14 @@ class MyHomeScreen extends StatelessWidget {
   final AppState state;
   final VoidCallback onOpenScan;
   final VoidCallback onOpenCosts;
+  final VoidCallback onOpenPaywall;
 
   const MyHomeScreen({
     super.key,
     required this.state,
     required this.onOpenScan,
     required this.onOpenCosts,
+    required this.onOpenPaywall,
   });
 
   @override
@@ -43,9 +47,17 @@ class MyHomeScreen extends StatelessWidget {
                       color: context.navyText)),
             ),
             FilledButton.icon(
-              onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => ApplianceFormScreen(state: state),
-              )),
+              onPressed: () {
+                if (!state.isPro &&
+                    state.appliances.length >= freeApplianceLimit) {
+                  onOpenPaywall();
+                  return;
+                }
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => ApplianceFormScreen(
+                      state: state, onOpenPaywall: onOpenPaywall),
+                ));
+              },
               icon: const Icon(Icons.add, size: 19),
               label: const Text('Add'),
               style: FilledButton.styleFrom(
@@ -62,7 +74,7 @@ class MyHomeScreen extends StatelessWidget {
               CircleAvatar(
                 radius: 24,
                 backgroundColor:
-                    context.isDark ? NkColors.darkPrimary : NkColors.lightNavy,
+                    context.isDark ? context.primary : NkColors.lightNavy,
                 child: const Icon(Icons.home_rounded, color: Colors.white),
               ),
               const SizedBox(width: 12),
@@ -96,11 +108,11 @@ class MyHomeScreen extends StatelessWidget {
                 width: 46,
                 height: 46,
                 decoration: BoxDecoration(
-                  color: NkColors.lightPrimary.withValues(alpha: 0.12),
+                  color: context.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(13),
                 ),
-                child: const Icon(Icons.savings_outlined,
-                    color: NkColors.lightPrimary, size: 24),
+                child: Icon(Icons.savings_outlined,
+                    color: context.primary, size: 24),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -168,6 +180,41 @@ class MyHomeScreen extends StatelessWidget {
         const SizedBox(height: 20),
         const SectionHeading('Appliances & warranties'),
         const SizedBox(height: 10),
+        if (!state.isPro && state.appliances.isNotEmpty) ...[
+          NkCard(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${state.appliances.length} of $freeApplianceLimit free appliances tracked',
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: context.navyText),
+                ),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(99),
+                  child: LinearProgressIndicator(
+                    value: (state.appliances.length / freeApplianceLimit)
+                        .clamp(0.0, 1.0)
+                        .toDouble(),
+                    minHeight: 8,
+                    backgroundColor: context.line,
+                    valueColor: AlwaysStoppedAnimation(context.primary),
+                  ),
+                ),
+                const SizedBox(height: 7),
+                Text(
+                  'Pro tracks every appliance in the house, with its invoice and photos attached.',
+                  style: TextStyle(fontSize: 12.5, color: context.muted),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
         if (state.appliances.isEmpty)
           NkCard(
             child: Column(
@@ -191,7 +238,11 @@ class MyHomeScreen extends StatelessWidget {
             ),
           ),
         for (final a in state.appliances) ...[
-          _ApplianceCard(state: state, appliance: a, now: now),
+          _ApplianceCard(
+              state: state,
+              appliance: a,
+              now: now,
+              onOpenPaywall: onOpenPaywall),
           const SizedBox(height: 10),
         ],
         const SizedBox(height: 12),
@@ -267,11 +318,11 @@ class MyHomeScreen extends StatelessWidget {
                   width: 46,
                   height: 46,
                   decoration: BoxDecoration(
-                    color: NkColors.lightPrimary.withValues(alpha: 0.12),
+                    color: context.primary.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(13),
                   ),
-                  child: const Icon(Icons.handyman_outlined,
-                      color: NkColors.lightPrimary, size: 24),
+                  child: Icon(Icons.handyman_outlined,
+                      color: context.primary, size: 24),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -447,9 +498,14 @@ class _ApplianceCard extends StatelessWidget {
   final AppState state;
   final Appliance appliance;
   final DateTime now;
+  final VoidCallback onOpenPaywall;
 
-  const _ApplianceCard(
-      {required this.state, required this.appliance, required this.now});
+  const _ApplianceCard({
+    required this.state,
+    required this.appliance,
+    required this.now,
+    required this.onOpenPaywall,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -469,67 +525,100 @@ class _ApplianceCard extends StatelessWidget {
       warrantyText = 'Warranty ended ${end.month}/${end.year}';
       warrantyColor = context.muted;
     }
+    final hasDate = appliance.purchaseDate != null;
+    final status = lifeStatus(appliance, now);
     return NkCard(
       onTap: () => Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => ApplianceFormScreen(state: state, existing: appliance),
+        builder: (_) => ApplianceDetailScreen(
+          state: state,
+          appliance: appliance,
+          onOpenPaywall: onOpenPaywall,
+        ),
       )),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (appliance.imagePath != null && File(appliance.imagePath!).existsSync())
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.file(
-                File(appliance.imagePath!),
-                width: 48,
-                height: 48,
-                fit: BoxFit.cover,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (appliance.imagePath != null &&
+                  File(appliance.imagePath!).existsSync())
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.file(
+                    File(appliance.imagePath!),
+                    width: 48,
+                    height: 48,
+                    fit: BoxFit.cover,
+                  ),
+                )
+              else
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: NkColors.green.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.kitchen_outlined,
+                      color: NkColors.green),
+                ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(appliance.name,
+                        style: TextStyle(
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.w600,
+                            color: context.navyText)),
+                    if ((appliance.brand ?? '').isNotEmpty ||
+                        (appliance.model ?? '').isNotEmpty)
+                      Text(
+                        [appliance.brand, appliance.model]
+                            .where((s) => (s ?? '').isNotEmpty)
+                            .join(' '),
+                        style: TextStyle(fontSize: 13, color: context.muted),
+                      ),
+                    Text(warrantyText,
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: warrantyColor,
+                            fontWeight: FontWeight.w600)),
+                    if ((appliance.notes ?? '').isNotEmpty)
+                      Text(
+                        appliance.notes!,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 13, color: context.muted),
+                      ),
+                  ],
+                ),
               ),
-            )
-          else
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: NkColors.green.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.kitchen_outlined, color: NkColors.green),
-            ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              if (hasDate) LifeChip(status: status),
+            ],
+          ),
+          if (hasDate) ...[
+            const SizedBox(height: 11),
+            LifeBar(appliance: appliance, now: now),
+            const SizedBox(height: 5),
+            Row(
               children: [
-                Text(appliance.name,
-                    style: TextStyle(
-                        fontSize: 15.5,
-                        fontWeight: FontWeight.w600,
-                        color: context.navyText)),
-                if ((appliance.brand ?? '').isNotEmpty ||
-                    (appliance.model ?? '').isNotEmpty)
-                  Text(
-                    [appliance.brand, appliance.model]
-                        .where((s) => (s ?? '').isNotEmpty)
-                        .join(' '),
-                    style: TextStyle(fontSize: 13, color: context.muted),
+                Expanded(
+                  child: Text(
+                    lifeLabel(appliance, now),
+                    style: TextStyle(fontSize: 12, color: context.muted),
                   ),
-                Text(warrantyText,
-                    style: TextStyle(
-                        fontSize: 13,
-                        color: warrantyColor,
-                        fontWeight: FontWeight.w600)),
-                if ((appliance.notes ?? '').isNotEmpty)
-                  Text(
-                    appliance.notes!,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 13, color: context.muted),
-                  ),
+                ),
+                Text(
+                  lifeLeftLabel(appliance, now),
+                  style: TextStyle(fontSize: 12, color: context.muted),
+                ),
               ],
             ),
-          ),
-          const Icon(Icons.chevron_right),
+          ],
         ],
       ),
     );

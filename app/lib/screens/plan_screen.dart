@@ -93,6 +93,9 @@ class PlanScreen extends StatelessWidget {
           for (final t in overdue) ...[
             TaskCard(
                 task: t,
+                minutes: t.templateId == null
+                    ? null
+                    : state.templateById[t.templateId]?.minutes,
                 onTap: () => onOpenTask(t),
                 onDone: () => completeTask(state, t)),
             const SizedBox(height: 10),
@@ -105,6 +108,9 @@ class PlanScreen extends StatelessWidget {
           for (final t in soon) ...[
             TaskCard(
                 task: t,
+                minutes: t.templateId == null
+                    ? null
+                    : state.templateById[t.templateId]?.minutes,
                 onTap: () => onOpenTask(t),
                 onDone: () => completeTask(state, t)),
             const SizedBox(height: 10),
@@ -117,6 +123,9 @@ class PlanScreen extends StatelessWidget {
           for (final t in later) ...[
             TaskCard(
                 task: t,
+                minutes: t.templateId == null
+                    ? null
+                    : state.templateById[t.templateId]?.minutes,
                 onTap: () => onOpenTask(t),
                 onDone: () => completeTask(state, t)),
             const SizedBox(height: 10),

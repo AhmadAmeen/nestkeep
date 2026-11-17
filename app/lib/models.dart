@@ -203,6 +203,7 @@ class Appliance {
   final String? serial;
   final DateTime? purchaseDate;
   final int warrantyMonths;
+  final int? lifespanYears; // expected working life; null = use the typical value
   final String? store;
   final double? price;
   final int? receiptId;
@@ -220,6 +221,7 @@ class Appliance {
     this.serial,
     this.purchaseDate,
     required this.warrantyMonths,
+    this.lifespanYears,
     this.store,
     this.price,
     this.receiptId,
@@ -243,6 +245,7 @@ class Appliance {
         'serial': serial,
         'purchaseDate': purchaseDate == null ? null : isoDate(purchaseDate!),
         'warrantyMonths': warrantyMonths,
+        'lifespanYears': lifespanYears,
         'store': store,
         'price': price,
         'receiptId': receiptId,
@@ -262,6 +265,7 @@ class Appliance {
         purchaseDate:
             m['purchaseDate'] == null ? null : parseDate(m['purchaseDate'] as String),
         warrantyMonths: m['warrantyMonths'] as int,
+        lifespanYears: m['lifespanYears'] as int?,
         store: m['store'] as String?,
         price: (m['price'] as num?)?.toDouble(),
         receiptId: m['receiptId'] as int?,
@@ -269,6 +273,38 @@ class Appliance {
         imageSynced: (m['imageSynced'] as int? ?? 0) == 1,
         notes: m['notes'] as String?,
         updatedAt: DateTime.parse(m['updatedAt'] as String),
+      );
+}
+
+/// A photo or invoice attached to one appliance (Pro). Files live in the
+/// app's documents folder on this phone only: they are never synced, the
+/// same rule as every other local file in the app.
+class ApplianceFile {
+  final int? id;
+  final int applianceId;
+  final String path;
+  final DateTime createdAt;
+
+  ApplianceFile({
+    this.id,
+    required this.applianceId,
+    required this.path,
+    required this.createdAt,
+  });
+
+  Map<String, Object?> toMap() => {
+        'id': id,
+        'applianceId': applianceId,
+        'path': path,
+        'createdAt': createdAt.millisecondsSinceEpoch,
+      };
+
+  factory ApplianceFile.fromMap(Map<String, Object?> m) => ApplianceFile(
+        id: m['id'] as int?,
+        applianceId: m['applianceId'] as int,
+        path: m['path'] as String,
+        createdAt:
+            DateTime.fromMillisecondsSinceEpoch(m['createdAt'] as int),
       );
 }
 

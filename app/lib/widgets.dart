@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
+import 'lifespan.dart';
 import 'models.dart';
 import 'theme.dart';
 
@@ -84,19 +85,22 @@ class HealthRing extends StatelessWidget {
 
   const HealthRing({super.key, required this.score, required this.grade, this.size = 132});
 
-  Color get _color {
-    if (score >= 70) return NkColors.greenRing;
+  /// A healthy home (grade A or B) wears the user's app colour; a home
+  /// that needs work keeps the warning colours, amber then red.
+  Color _colorFor(BuildContext context) {
+    if (grade == 'A' || grade == 'B') return context.primary;
     if (score >= 50) return NkColors.amber;
     return NkColors.red;
   }
 
   @override
   Widget build(BuildContext context) {
+    final color = _colorFor(context);
     return SizedBox(
       width: size,
       height: size,
       child: CustomPaint(
-        painter: _RingPainter(score: score, color: _color, track: context.line),
+        painter: _RingPainter(score: score, color: color, track: context.line),
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -115,7 +119,7 @@ class HealthRing extends StatelessWidget {
                 style: TextStyle(
                   fontSize: size * 0.15,
                   fontWeight: FontWeight.w700,
-                  color: _color,
+                  color: color,
                 ),
               ),
             ],
@@ -160,6 +164,60 @@ class _RingPainter extends CustomPainter {
   @override
   bool shouldRepaint(_RingPainter old) =>
       old.score != score || old.color != color || old.track != track;
+}
+
+/// The small pill that says where an appliance is in its life:
+/// Good shape / Monitor / Replace soon, in the band's colour.
+class LifeChip extends StatelessWidget {
+  final LifeStatus status;
+
+  const LifeChip({super.key, required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = lifeStatusColor(status);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        lifeStatusLabel(status),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
+/// The appliance life bar: fraction of expected life used, in the
+/// status colour, on the standard track.
+class LifeBar extends StatelessWidget {
+  final Appliance appliance;
+  final DateTime now;
+  final double height;
+
+  const LifeBar(
+      {super.key, required this.appliance, required this.now, this.height = 8});
+
+  @override
+  Widget build(BuildContext context) {
+    final used = lifeUsed(appliance, now);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(99),
+      child: LinearProgressIndicator(
+        value: used.clamp(0.0, 1.0).toDouble(),
+        minHeight: height,
+        backgroundColor: context.line,
+        valueColor: AlwaysStoppedAnimation(
+            lifeStatusColor(lifeStatus(appliance, now))),
+      ),
+    );
+  }
 }
 
 IconData categoryIcon(String category) {

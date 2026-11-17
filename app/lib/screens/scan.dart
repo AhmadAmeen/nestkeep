@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../app_state.dart';
 import '../db.dart';
+import '../lifespan.dart';
 import '../models.dart';
 import '../receipt_parser.dart';
 import '../reminders.dart';
@@ -93,11 +94,11 @@ class _ScanScreenState extends State<ScanScreen> {
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
-                  color: NkColors.lightPrimary.withValues(alpha: 0.12),
+                  color: context.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.photo_camera_outlined,
-                    color: NkColors.lightPrimary, size: 27),
+                child: Icon(Icons.photo_camera_outlined,
+                    color: context.primary, size: 27),
               ),
               const SizedBox(width: 14),
               const Expanded(
@@ -265,7 +266,11 @@ class _ReceiptSheetState extends State<ReceiptSheet> {
 
     final applianceName = _applianceName.text.trim();
     int? applianceId;
-    if (applianceName.isNotEmpty) {
+    // Free plans track up to freeApplianceLimit appliances. At the cap
+    // the receipt and its expense still save; only the new appliance
+    // record is skipped, quietly, rather than failing the whole scan.
+    if (applianceName.isNotEmpty &&
+        (state.isPro || state.appliances.length < freeApplianceLimit)) {
       applianceId = await AppDb.insertAppliance(Appliance(
         homeId: homeId,
         name: applianceName,

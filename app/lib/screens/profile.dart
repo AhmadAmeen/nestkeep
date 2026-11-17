@@ -8,8 +8,10 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../app_state.dart';
+import '../badges.dart';
 import '../calendar.dart';
 import '../db.dart';
+import '../models.dart';
 import '../sync.dart';
 import '../theme.dart';
 import '../widgets.dart';
@@ -53,7 +55,7 @@ class ProfileScreen extends StatelessWidget {
                   CircleAvatar(
                     radius: 22,
                     backgroundColor: context.isDark
-                        ? NkColors.darkPrimary
+                        ? context.primary
                         : NkColors.lightNavy,
                     child: Icon(
                         user == null ? Icons.person_outline : Icons.person,
@@ -119,6 +121,10 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
+        _BadgesCard(state: state, onOpenPaywall: onOpenPaywall),
+        const SizedBox(height: 20),
+        _ColourCard(state: state),
+        const SizedBox(height: 20),
         const SectionHeading('Your plan'),
         const SizedBox(height: 10),
         NkCard(
@@ -161,14 +167,15 @@ class ProfileScreen extends StatelessWidget {
                 for (final f in const [
                   'Seasonal plan and reminders for 1 home',
                   'Home health score that shows its work',
-                  'Warranty vault for your appliances',
+                  'Warranty vault and lifespan for 5 appliances',
                   'Unlimited receipt scanning',
                   'Add your own jobs (10 at a time)',
                 ])
                   _includedRow(context, f),
                 const SizedBox(height: 6),
                 Text(
-                  'Pro adds up to 3 homes, receipt photos saved in the app, '
+                  'Pro adds up to 3 homes, every appliance tracked with '
+                  'photos and invoices, receipt photos saved in the app, '
                   'full cost history, a PDF home report and backup export.',
                   style: TextStyle(
                       fontSize: 13.5, color: context.muted, height: 1.4),
@@ -180,9 +187,10 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ] else
                 Text(
-                  'Everything is unlocked: up to 3 homes, receipt photos '
-                  'saved and synced, full cost history, PDF home report '
-                  'and backup export.',
+                  'Everything is unlocked: up to 3 homes, every appliance '
+                  'tracked with photos and invoices, receipt photos saved '
+                  'and synced, full cost history, PDF home report and '
+                  'backup export.',
                   style: TextStyle(
                       fontSize: 13.5, color: context.muted, height: 1.4),
                 ),
@@ -335,7 +343,7 @@ class ProfileScreen extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'NestKeep 1.0.5 · Made to be kept: no ads, no selling data, your home data lives on your phone.',
+          'NestKeep 1.1.0 · Made to be kept: no ads, no selling data, your home data lives on your phone.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 12.5, color: context.muted),
         ),
@@ -402,5 +410,196 @@ class ProfileScreen extends StatelessWidget {
       await AppDb.wipeAll();
     }
     await state.reload();
+  }
+}
+
+/// The badge shelf: small proof of a home being looked after, earned
+/// from the app's own numbers. The Pro member badge doubles as the
+/// quietest possible advert for the paid plan.
+class _BadgesCard extends StatelessWidget {
+  final AppState state;
+  final VoidCallback onOpenPaywall;
+
+  const _BadgesCard({required this.state, required this.onOpenPaywall});
+
+  @override
+  Widget build(BuildContext context) {
+    final badges = computeBadges(
+      doneCount:
+          state.tasks.where((t) => t.status == TaskStatus.done).length,
+      receiptsCount: state.receipts.length,
+      appliancesCount: state.appliances.length,
+      streakWeeks: state.streakWeeks,
+      score: state.health.score,
+      isPro: state.isPro,
+    );
+    final earnedCount = badges.where((b) => b.earned).length;
+    return NkCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Your badges',
+                style: TextStyle(
+                    fontSize: 16.5,
+                    fontWeight: FontWeight.w700,
+                    color: context.navyText),
+              ),
+              const Spacer(),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: context.line,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '$earnedCount of ${badges.length} earned',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.4,
+                    color: context.muted,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              mainAxisExtent: 104,
+              crossAxisSpacing: 6,
+              mainAxisSpacing: 10,
+            ),
+            itemCount: badges.length,
+            itemBuilder: (context, i) {
+              final b = badges[i];
+              final Color iconColor;
+              final Color bgColor;
+              if (b.earned && b.isProBadge) {
+                iconColor = NkColors.amber;
+                bgColor = NkColors.amber.withValues(alpha: 0.15);
+              } else if (b.earned) {
+                iconColor = context.primary;
+                bgColor = context.primary.withValues(alpha: 0.13);
+              } else {
+                iconColor = context.muted.withValues(alpha: 0.45);
+                bgColor = context.line.withValues(alpha: 0.5);
+              }
+              return GestureDetector(
+                onTap: b.isProBadge && !b.earned ? onOpenPaywall : null,
+                child: Column(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration:
+                          BoxDecoration(color: bgColor, shape: BoxShape.circle),
+                      child: Icon(b.icon, size: 24, color: iconColor),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      b.label,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: b.earned ? context.navyText : context.muted,
+                        height: 1.15,
+                      ),
+                    ),
+                    if (b.progressLabel != null)
+                      Text(
+                        b.progressLabel!,
+                        textAlign: TextAlign.center,
+                        style:
+                            TextStyle(fontSize: 10.5, color: context.muted),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The app-colour picker: blue, orange or pink, worn by the whole app
+/// in light and dark alike.
+class _ColourCard extends StatelessWidget {
+  final AppState state;
+
+  const _ColourCard({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    return NkCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'App colour',
+            style: TextStyle(
+                fontSize: 16.5,
+                fontWeight: FontWeight.w700,
+                color: context.navyText),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              for (final accent in AppAccent.values) ...[
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => state.setAccent(accent),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: accent.primaryFor(context.isDark),
+                            shape: BoxShape.circle,
+                            border: state.accent == accent
+                                ? Border.all(
+                                    color: context.navyText, width: 2.5)
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          accent.label,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: state.accent == accent
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: context.navyText,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Works in light and dark.',
+            style: TextStyle(fontSize: 12.5, color: context.muted),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -6,6 +6,7 @@ import 'db.dart';
 import 'health.dart';
 import 'models.dart';
 import 'plan.dart';
+import 'theme.dart';
 
 /// App-wide state, deliberately simple: one ChangeNotifier holding the
 /// active home and its data, reloaded from SQLite after every mutation.
@@ -28,6 +29,7 @@ class AppState extends ChangeNotifier {
   List<HomeNote> homeNotes = [];
   List<Belonging> belongings = [];
   Entitlement entitlement = Entitlement.free;
+  AppAccent accent = AppAccent.blue;
   bool loaded = false;
 
   bool get hasHome => activeHome != null;
@@ -55,6 +57,12 @@ class AppState extends ChangeNotifier {
         entitlement = Entitlement.free;
       }
     }
+
+    final savedAccent = await AppDb.getSetting('accent');
+    accent = AppAccent.values.firstWhere(
+      (a) => a.name == savedAccent,
+      orElse: () => AppAccent.blue,
+    );
 
     homes = await AppDb.homes();
     for (final h in homes) {
@@ -132,6 +140,14 @@ class AppState extends ChangeNotifier {
       }
     }
     return total;
+  }
+
+  /// Switch the app colour. Persisted, and the whole app (light and
+  /// dark alike) repaints in the new accent.
+  Future<void> setAccent(AppAccent a) async {
+    accent = a;
+    await AppDb.setSetting('accent', a.name);
+    notifyListeners();
   }
 
   Future<void> setEntitlement(Entitlement e) async {

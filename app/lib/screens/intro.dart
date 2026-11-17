@@ -99,8 +99,12 @@ class _IntroScreenState extends State<IntroScreen> {
                 onPageChanged: (i) => setState(() => _page = i),
                 itemBuilder: (context, i) {
                   final s = _slides[i];
-                  final color = context.isDark && s.color == NkColors.lightNavy
-                      ? NkColors.darkPrimary
+                  // Slides drawn in the brand primary follow the chosen
+                  // accent; the navy slide swaps to it in dark only, as
+                  // before. The other slide colours are their own.
+                  final color = s.color == NkColors.lightPrimary ||
+                          (context.isDark && s.color == NkColors.lightNavy)
+                      ? context.primary
                       : s.color;
                   return Padding(
                     padding: const EdgeInsets.fromLTRB(32, 48, 32, 16),
@@ -163,11 +167,7 @@ class _IntroScreenState extends State<IntroScreen> {
                     width: i == _page ? 22 : 8,
                     height: 8,
                     decoration: BoxDecoration(
-                      color: i == _page
-                          ? (context.isDark
-                              ? NkColors.darkPrimary
-                              : NkColors.lightPrimary)
-                          : context.line,
+                      color: i == _page ? context.primary : context.line,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),

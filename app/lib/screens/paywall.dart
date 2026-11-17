@@ -79,6 +79,7 @@ class PaywallScreen extends StatelessWidget {
         const SizedBox(height: 18),
         for (final f in const [
           (Icons.add_task, 'Unlimited custom jobs on top of the plan'),
+          (Icons.kitchen_outlined, 'Every appliance tracked, with its photos and invoice'),
           (Icons.photo_library_outlined, 'Receipt photos kept in the app and backed up'),
           (Icons.savings_outlined, 'Cost tracker with year view and category totals'),
           (Icons.picture_as_pdf_outlined, 'PDF home report for insurance or selling'),
