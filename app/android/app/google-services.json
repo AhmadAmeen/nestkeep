@@ -14,6 +14,22 @@
       },
       "oauth_client": [
         {
+          "client_id": "310170006989-dps6nkjn3u8h3cv5ltgqe9tdmekojh0g.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.respawned.nestkeep",
+            "certificate_hash": "a87ddd0e77c094760e7a15e94a52ee01e7b18963"
+          }
+        },
+        {
+          "client_id": "310170006989-e42pn3gi4d9qjkhbo4r9ud9jcpntjst8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.respawned.nestkeep",
+            "certificate_hash": "8e6236ef86fc1df2635e5b96819fff6ea1aa6b4d"
+          }
+        },
+        {
           "client_id": "310170006989-o5k97rcvu9d6vlv8e7o54fu64uu3b6a2.apps.googleusercontent.com",
           "client_type": 3
         }
