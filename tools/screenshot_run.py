@@ -2,7 +2,8 @@
 """Drive the NestKeep app on a CI emulator and capture real store screenshots.
 
 Runs on the GitHub Actions runner after the emulator has booted (invoked
-from the android-emulator-runner step). Installs the debug APK, walks the
+from the android-emulator-runner step). Installs the release APK (no
+debug banner in store shots), walks the
 first-run onboarding with its pre-filled defaults, taps "Build my plan",
 then captures each bottom-nav screen at 1080x2160 (2:1, Play-safe).
 
@@ -124,6 +125,14 @@ def swipe_up():
 
 def shot(name):
     time.sleep(3)
+    # Warm-up capture, discarded: under the software renderer the first
+    # screencap after a screen change can grab a cleared buffer (white
+    # body, nav painted) even though the widget tree is fully built
+    # (run #13: Today and Scan blank, Plan/My Home/Profile fine, all
+    # static synchronous layouts). The throwaway grab forces a fresh
+    # composite so the saved capture is the painted frame.
+    adb("exec-out", "screencap", "-p", binary=True)
+    time.sleep(1)
     r = adb("exec-out", "screencap", "-p", binary=True)
     data = r.stdout or b""
     if len(data) < 10000:
@@ -131,6 +140,22 @@ def shot(name):
     with open(os.path.join(OUT, name), "wb") as f:
         f.write(data)
     print(f"saved {name} ({len(data)} bytes)", flush=True)
+
+
+def wait_content(text, timeout=40):
+    """Advisory wait: poll the dump until a tab's content label shows.
+    Never fails the run (the tree itself is intermittently bare on this
+    emulator); it just gives slow first frames time to land before the
+    capture."""
+    end = time.time() + timeout
+    while time.time() < end:
+        if find(dump(), text):
+            print(f"content ready: '{text}'", flush=True)
+            time.sleep(2)
+            return True
+        time.sleep(3)
+    print(f"content label never seen (continuing): '{text}'", flush=True)
+    return False
 
 
 def fail(msg):
@@ -220,19 +245,26 @@ def main():
     adb("shell", "am", "force-stop", PKG)
     time.sleep(2)
     adb("shell", "am", "start", "-n", f"{PKG}/.MainActivity")
-    time.sleep(12)
+    time.sleep(8)
+    # Today is the first frame after the cold start and the one this
+    # renderer most often hands back blank; wait for its content label
+    # before shooting (run #13's Today was a white body over the nav).
+    wait_content("Welcome home", timeout=60)
     print("after relaunch; visible:", visible_texts(dump())[:25], flush=True)
 
     shot("01-today.png")
     # Bottom nav: 5 equal tabs across 1080px, centred around y=2040.
-    for name, x in (
-        ("02-plan.png", 324),
-        ("03-scan.png", 540),
-        ("04-my-home.png", 756),
-        ("05-profile.png", 972),
+    # Each tab gets its own content wait: run #13's Scan came back blank
+    # the same way, while tabs whose frames had settled painted fine.
+    for name, x, label in (
+        ("02-plan.png", 324, "Your plan"),
+        ("03-scan.png", 540, "Scan a receipt"),
+        ("04-my-home.png", 756, "Appliances"),
+        ("05-profile.png", 972, "Guest mode"),
     ):
         adb("shell", "input", "tap", str(x), "2040")
-        time.sleep(4)
+        time.sleep(3)
+        wait_content(label, timeout=30)
         print(f"tapped nav x={x}; visible:", visible_texts(dump())[:15],
               flush=True)
         shot(name)
