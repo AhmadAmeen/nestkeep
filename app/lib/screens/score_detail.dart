@@ -4,8 +4,9 @@ import '../app_state.dart';
 import '../theme.dart';
 import '../widgets.dart';
 
-/// Score by area: the health score broken down per category, worst
-/// first, each with its score and the plain reason behind it.
+/// Score breakdown: the health score split per category (area), worst
+/// first, each with its score and the plain reason behind it. A short
+/// card at the top explains how the scoring works.
 class ScoreDetailScreen extends StatelessWidget {
   final AppState state;
 
@@ -16,10 +17,45 @@ class ScoreDetailScreen extends StatelessWidget {
     final health = state.health;
     final areas = state.healthByCategory;
     return Scaffold(
-      appBar: AppBar(title: const Text('Score by area')),
+      appBar: AppBar(title: const Text('Score breakdown')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
+          NkCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'How this works',
+                  style: TextStyle(
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w700,
+                      color: context.navyText),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'An area is one part of the home on your plan, like HVAC, Plumbing or Safety. Each one gets its own score here.',
+                  style: TextStyle(color: context.muted, height: 1.4),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Every area starts at 100. An overdue job takes points off its area, safety jobs and costly-to-ignore jobs the most, and the longer a job waits, the more it loses. A job due in the next two weeks takes a point off too.',
+                  style: TextStyle(color: context.muted, height: 1.4),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Finishing a job puts its points straight back.',
+                  style: TextStyle(color: context.muted, height: 1.4),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'The big score on Today is not an average of these areas. It uses the same rules across the whole home at once.',
+                  style: TextStyle(color: context.muted, height: 1.4),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
           NkCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -102,11 +138,6 @@ class ScoreDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 10),
           ],
-          const SizedBox(height: 6),
-          Text(
-            'Every area starts at 100. Overdue jobs pull it down, safety jobs most of all. Finishing a job puts the points back.',
-            style: TextStyle(color: context.muted, fontSize: 13, height: 1.4),
-          ),
         ],
       ),
     );

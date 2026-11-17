@@ -6,6 +6,7 @@ import '../models.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import '../widgets/animated_check.dart';
+import 'history.dart';
 import 'score_detail.dart';
 
 /// The Today screen: the approved front-page grid. One card per job,
@@ -128,7 +129,7 @@ class TodayScreen extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            'Score by area',
+                            'See the breakdown',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
@@ -283,6 +284,9 @@ class TodayScreen extends StatelessWidget {
               child: _BounceOnIncrease(
                 value: health.completedCount,
                 child: NkCard(
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => HistoryScreen(state: state),
+                  )),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

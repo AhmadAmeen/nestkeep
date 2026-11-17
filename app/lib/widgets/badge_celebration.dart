@@ -6,8 +6,10 @@ import '../badges.dart';
 import '../theme.dart';
 
 /// The full-screen celebration shown once when a badge is earned: the
-/// badge springs in inside a gold ring, a short confetti burst goes off
-/// behind it, and the badge's own line explains what just happened.
+/// badge springs in inside a gold ring, overlapping the top edge of an
+/// opaque panel that carries every word of the celebration, and a short
+/// confetti burst goes off behind the panel. Nothing is drawn over the
+/// raw screen, so the text can never collide with the page behind it.
 /// Shown by the Shell, one at a time, from AppState.pendingCelebrations.
 class BadgeCelebrationOverlay extends StatefulWidget {
   final BadgeResult badge;
@@ -65,14 +67,14 @@ class _BadgeCelebrationOverlayState extends State<BadgeCelebrationOverlay>
       type: MaterialType.transparency,
       child: Stack(
         children: [
-          // Dim backdrop; tapping it dismisses, like tapping anywhere.
+          // Dim backdrop; tapping it dismisses.
           Positioned.fill(
             child: GestureDetector(
               onTap: widget.onDismiss,
-              child: Container(color: Colors.black.withValues(alpha: 0.55)),
+              child: Container(color: Colors.black.withValues(alpha: 0.60)),
             ),
           ),
-          // Confetti burst, behind the badge, above the backdrop.
+          // Confetti burst, behind the panel, above the backdrop.
           Positioned.fill(
             child: IgnorePointer(
               child: AnimatedBuilder(
@@ -94,88 +96,128 @@ class _BadgeCelebrationOverlayState extends State<BadgeCelebrationOverlay>
           ),
           Center(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ScaleTransition(
-                    scale: CurvedAnimation(
-                      parent: _scale,
-                      curve: Curves.elasticOut,
-                    ),
-                    child: Container(
-                      width: 110,
-                      height: 110,
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 320),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    // The opaque panel: every word of the celebration
+                    // lives on this solid card, so nothing can collide
+                    // with the screen behind it. The top margin leaves
+                    // room for the badge circle to overlap the edge.
+                    Container(
+                      margin: const EdgeInsets.only(top: 55),
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: const LinearGradient(
-                          colors: [_goldLight, _goldDeep],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        color: context.isDark
+                            ? NkColors.darkCard
+                            : NkColors.lightCard,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: context.line),
                         boxShadow: [
                           BoxShadow(
-                            color: _goldDeep.withValues(alpha: 0.45),
-                            blurRadius: 34,
-                            spreadRadius: 6,
+                            color: Colors.black.withValues(
+                                alpha: context.isDark ? 0.45 : 0.22),
+                            blurRadius: 30,
+                            offset: const Offset(0, 12),
                           ),
                         ],
                       ),
                       child: Padding(
-                        padding: const EdgeInsets.all(5),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: context.isDark
-                                ? NkColors.darkCard
-                                : Colors.white,
-                          ),
-                          child: Icon(badge.icon, size: 52, color: iconColor),
+                        padding: const EdgeInsets.fromLTRB(24, 71, 24, 24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'BADGE EARNED',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 2.2,
+                                color: context.primary,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              badge.label,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.w800,
+                                color: context.navyText,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              badge.blurb,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: context.muted,
+                                height: 1.35,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            FilledButton(
+                              onPressed: widget.onDismiss,
+                              style: FilledButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 44, vertical: 14),
+                              ),
+                              child: const Text('Nice'),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 26),
-                  Text(
-                    'BADGE EARNED',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 2.2,
-                      color:
-                          Color.lerp(context.primary, Colors.white, 0.35),
+                    // The badge circle, overlapping the panel's top edge.
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: ScaleTransition(
+                          scale: CurvedAnimation(
+                            parent: _scale,
+                            curve: Curves.elasticOut,
+                          ),
+                          child: Container(
+                            width: 110,
+                            height: 110,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: const LinearGradient(
+                                colors: [_goldLight, _goldDeep],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: _goldDeep.withValues(alpha: 0.45),
+                                  blurRadius: 34,
+                                  spreadRadius: 6,
+                                ),
+                              ],
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(5),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: context.isDark
+                                      ? NkColors.darkCard
+                                      : Colors.white,
+                                ),
+                                child: Icon(badge.icon,
+                                    size: 52, color: iconColor),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    badge.label,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 27,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    badge.blurb,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 15.5,
-                      color: Colors.white.withValues(alpha: 0.78),
-                      height: 1.35,
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-                  FilledButton(
-                    onPressed: widget.onDismiss,
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 44, vertical: 14),
-                    ),
-                    child: const Text('Nice'),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

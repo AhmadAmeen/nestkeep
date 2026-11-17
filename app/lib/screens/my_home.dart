@@ -99,6 +99,76 @@ class MyHomeScreen extends StatelessWidget {
             ],
           ),
         ),
+        const SizedBox(height: 20),
+        SectionHeading(state.appliances.isEmpty
+            ? 'Appliances'
+            : 'Appliances · ${state.appliances.length} tracked'),
+        const SizedBox(height: 10),
+        if (!state.isPro && state.appliances.isNotEmpty) ...[
+          NkCard(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${state.appliances.length} of $freeApplianceLimit free appliances tracked',
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: context.navyText),
+                ),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(99),
+                  child: LinearProgressIndicator(
+                    value: (state.appliances.length / freeApplianceLimit)
+                        .clamp(0.0, 1.0)
+                        .toDouble(),
+                    minHeight: 8,
+                    backgroundColor: context.line,
+                    valueColor: AlwaysStoppedAnimation(context.primary),
+                  ),
+                ),
+                const SizedBox(height: 7),
+                Text(
+                  'Pro tracks every appliance in the house, with its invoice and photos attached.',
+                  style: TextStyle(fontSize: 12.5, color: context.muted),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
+        if (state.appliances.isEmpty)
+          NkCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Nothing here yet.',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600, color: context.navyText)),
+                const SizedBox(height: 4),
+                Text(
+                  'Add an appliance by hand, or scan its receipt and NestKeep fills in the purchase date and warranty for you.',
+                  style: TextStyle(color: context.muted, height: 1.4),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: onOpenScan,
+                  icon: const Icon(Icons.document_scanner_outlined),
+                  label: const Text('Scan a receipt'),
+                ),
+              ],
+            ),
+          ),
+        for (final a in state.appliances) ...[
+          _ApplianceCard(
+              state: state,
+              appliance: a,
+              now: now,
+              onOpenPaywall: onOpenPaywall),
+          const SizedBox(height: 10),
+        ],
         const SizedBox(height: 12),
         NkCard(
           onTap: onOpenCosts,
@@ -178,74 +248,6 @@ class MyHomeScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-        const SectionHeading('Appliances & warranties'),
-        const SizedBox(height: 10),
-        if (!state.isPro && state.appliances.isNotEmpty) ...[
-          NkCard(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${state.appliances.length} of $freeApplianceLimit free appliances tracked',
-                  style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: context.navyText),
-                ),
-                const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(99),
-                  child: LinearProgressIndicator(
-                    value: (state.appliances.length / freeApplianceLimit)
-                        .clamp(0.0, 1.0)
-                        .toDouble(),
-                    minHeight: 8,
-                    backgroundColor: context.line,
-                    valueColor: AlwaysStoppedAnimation(context.primary),
-                  ),
-                ),
-                const SizedBox(height: 7),
-                Text(
-                  'Pro tracks every appliance in the house, with its invoice and photos attached.',
-                  style: TextStyle(fontSize: 12.5, color: context.muted),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-        ],
-        if (state.appliances.isEmpty)
-          NkCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Nothing here yet.',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w600, color: context.navyText)),
-                const SizedBox(height: 4),
-                Text(
-                  'Add an appliance by hand, or scan its receipt and NestKeep fills in the purchase date and warranty for you.',
-                  style: TextStyle(color: context.muted, height: 1.4),
-                ),
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  onPressed: onOpenScan,
-                  icon: const Icon(Icons.document_scanner_outlined),
-                  label: const Text('Scan a receipt'),
-                ),
-              ],
-            ),
-          ),
-        for (final a in state.appliances) ...[
-          _ApplianceCard(
-              state: state,
-              appliance: a,
-              now: now,
-              onOpenPaywall: onOpenPaywall),
-          const SizedBox(height: 10),
-        ],
-        const SizedBox(height: 12),
         const SectionHeading('Receipts'),
         const SizedBox(height: 10),
         if (state.receipts.isEmpty)
