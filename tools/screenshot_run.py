@@ -3,8 +3,8 @@
 
 Runs on the GitHub Actions runner after the emulator has booted (invoked
 from the android-emulator-runner step). Installs the release APK (no
-debug banner in store shots), walks the
-first-run onboarding with its pre-filled defaults, taps "Build my plan",
+debug banner in store shots), skips the intro slides, steps through the
+onboarding wizard with its pre-filled defaults, taps "Build my plan",
 then captures each bottom-nav screen at 1080x2160 (2:1, Play-safe).
 
 Diagnostics: every UI dump's visible texts are printed to the log, a launch
@@ -118,11 +118,6 @@ def tap_text(text, timeout=30, required=True, min_y=0, exact=False):
     return False
 
 
-def swipe_up():
-    adb("shell", "input", "swipe", "540", "1750", "540", "650", "350")
-    time.sleep(1)
-
-
 def shot(name):
     time.sleep(3)
     # Warm-up capture, discarded: under the software renderer the first
@@ -197,6 +192,21 @@ def wait_for_text(text, timeout=90):
     return None
 
 
+def wait_for_any(texts, timeout=90):
+    """Like wait_for_text, but the first of several labels wins. Returns
+    (xml, matched_text) or (None, None)."""
+    end = time.time() + timeout
+    while time.time() < end:
+        xml = dump()
+        for t in texts:
+            if find(xml, t):
+                print(f"found '{t}'", flush=True)
+                return xml, t
+        print("waiting; visible:", visible_texts(xml)[:25], flush=True)
+        time.sleep(10)
+    return None, None
+
+
 def main():
     apk = sys.argv[1]
     print("waiting for device...", flush=True)
@@ -214,20 +224,30 @@ def main():
     r = adb("shell", "am", "start", "-n", f"{PKG}/.MainActivity")
     print(r.stdout, r.stderr, flush=True)
 
-    # Wait for the onboarding screen to render (spinner shows first).
-    xml = wait_for_text("Welcome home", timeout=90)
+    # First paint is the splash, then either the intro slides (new
+    # builds) or onboarding step 1 directly (older builds).
+    xml, hit = wait_for_any(["Your home, handled", "Welcome home"],
+                            timeout=90)
     if xml is None:
-        fail("onboarding 'Welcome home' never appeared")
+        fail("neither intro nor onboarding appeared after launch")
+    if hit == "Your home, handled":
+        # Skip the intro; onboarding follows immediately.
+        tap_text("Skip", timeout=20, exact=True)
+        xml = wait_for_text("Welcome home", timeout=60)
+        if xml is None:
+            fail("onboarding 'Welcome home' never appeared after intro")
 
     shot("00-onboarding.png")
 
-    # The form is long; the button enters the semantics tree only when
-    # scrolled into view. Scroll gradually until it shows up.
-    for i in range(10):
+    # Onboarding is a step wizard: tap Next through the steps (defaults
+    # are pre-filled, Next is always enabled) until the summary step's
+    # build button enters the tree, then tap it.
+    for i in range(6):
         if find(dump(), "Build my plan"):
             break
-        print(f"scroll {i + 1}: button not visible yet", flush=True)
-        swipe_up()
+        print(f"wizard: tapping Next ({i + 1})", flush=True)
+        tap_text("Next", timeout=20, exact=True)
+        time.sleep(2)
     tap_text("Build my plan", timeout=20)
     time.sleep(4)
 

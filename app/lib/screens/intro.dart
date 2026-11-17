@@ -107,15 +107,24 @@ class _IntroScreenState extends State<IntroScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Container(
-                          width: 104,
-                          height: 104,
-                          decoration: BoxDecoration(
-                            color: color.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(30),
+                        if (i == 0)
+                          // The brand moment: the nest artwork itself,
+                          // not a generic icon tile.
+                          Image.asset(
+                            'assets/icon.png',
+                            width: 96,
+                            height: 96,
+                          )
+                        else
+                          Container(
+                            width: 104,
+                            height: 104,
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            child: Icon(s.icon, size: 52, color: color),
                           ),
-                          child: Icon(s.icon, size: 52, color: color),
-                        ),
                         const SizedBox(height: 36),
                         Text(
                           s.title,

@@ -1,7 +1,7 @@
 name: nestkeep
 description: "NestKeep — home maintenance plan, warranty vault, receipt scanner and reminders."
 publish_to: "none"
-version: 1.0.2+5
+version: 1.0.3+6
 
 environment:
   sdk: ^3.10.0
@@ -37,3 +37,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/tasks.json
+    - assets/icon.png
