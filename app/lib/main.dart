@@ -18,6 +18,7 @@ import 'screens/scan.dart';
 import 'screens/task_detail.dart';
 import 'screens/today.dart';
 import 'theme.dart';
+import 'widgets/badge_celebration.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -184,8 +185,53 @@ class Shell extends StatefulWidget {
 
 class _ShellState extends State<Shell> {
   int _tab = 0;
+  bool _celebrationShowing = false;
 
   AppState get state => widget.state;
+
+  @override
+  void initState() {
+    super.initState();
+    state.addListener(_maybeCelebrate);
+    // Catch anything earned before the Shell existed (e.g. during
+    // onboarding) on the first frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeCelebrate());
+  }
+
+  @override
+  void dispose() {
+    state.removeListener(_maybeCelebrate);
+    super.dispose();
+  }
+
+  /// Badge celebrations drain one at a time. State reloads land here
+  /// via the listener; the post-frame callback keeps the dialog out of
+  /// the build phase, and the flag keeps celebrations from stacking.
+  void _maybeCelebrate() {
+    if (_celebrationShowing || state.pendingCelebrations.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showCelebration());
+  }
+
+  Future<void> _showCelebration() async {
+    if (!mounted || _celebrationShowing || state.pendingCelebrations.isEmpty) {
+      return;
+    }
+    _celebrationShowing = true;
+    final badge = state.pendingCelebrations.first;
+    await showDialog<void>(
+      context: context,
+      barrierColor: Colors.transparent,
+      barrierDismissible: false,
+      builder: (ctx) => BadgeCelebrationOverlay(
+        badge: badge,
+        onDismiss: () => Navigator.of(ctx).pop(),
+      ),
+    );
+    _celebrationShowing = false;
+    // Consuming notifies listeners, which queues the next celebration
+    // if there is one.
+    state.consumeCelebration(badge.id);
+  }
 
   void _openPaywall() {
     Navigator.of(context).push(MaterialPageRoute(

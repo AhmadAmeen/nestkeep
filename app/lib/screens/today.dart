@@ -91,9 +91,12 @@ class TodayScreen extends StatelessWidget {
             const SizedBox(width: 4),
             CircleAvatar(
               radius: 21,
-              backgroundColor:
-                  context.isDark ? context.primary : NkColors.lightNavy,
-              child: const Icon(Icons.home_rounded, color: Colors.white, size: 22),
+              backgroundColor: context.primary
+                  .withValues(alpha: context.isDark ? 0.28 : 0.14),
+              child: Text(
+                state.currentAvatar.emoji,
+                style: const TextStyle(fontSize: 21),
+              ),
             ),
           ],
         ),

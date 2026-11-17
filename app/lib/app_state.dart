@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
 
+import 'avatars.dart';
+import 'badges.dart';
 import 'db.dart';
 import 'health.dart';
 import 'models.dart';
@@ -31,6 +33,12 @@ class AppState extends ChangeNotifier {
   List<Belonging> belongings = [];
   Entitlement entitlement = Entitlement.free;
   AppAccent accent = AppAccent.purple;
+  AvatarDef currentAvatar = avatarById(null);
+
+  /// Badges earned but not yet celebrated, in celebration order.
+  /// Filled by reload(); the Shell drains it one at a time via
+  /// [consumeCelebration].
+  List<BadgeResult> pendingCelebrations = [];
   bool loaded = false;
 
   bool get hasHome => activeHome != null;
@@ -61,6 +69,8 @@ class AppState extends ChangeNotifier {
 
     final savedAccent = await AppDb.getSetting('accent');
     accent = parseAppAccent(savedAccent);
+
+    currentAvatar = avatarById(await AppDb.getSetting('avatar'));
 
     homes = await AppDb.homes();
     for (final h in homes) {
@@ -95,6 +105,7 @@ class AppState extends ChangeNotifier {
     contractors = await AppDb.contractorsForHome(id);
     homeNotes = await AppDb.homeNotesForHome(id);
     belongings = await AppDb.belongingsForHome(id);
+    await _updateBadgeCelebrations();
     notifyListeners();
   }
 
@@ -125,6 +136,16 @@ class AppState extends ChangeNotifier {
         : await AppDb.tasksForHome(homeId);
     return derivedSelectionFromTasks(homeTasks);
   }
+
+  /// The badge shelf, from the same numbers the Profile card shows.
+  List<BadgeResult> get currentBadges => computeBadges(
+        doneCount: tasks.where((t) => t.status == TaskStatus.done).length,
+        receiptsCount: receipts.length,
+        appliancesCount: appliances.length,
+        streakWeeks: streakWeeks,
+        score: health.score,
+        isPro: isPro,
+      );
 
   HealthResult get health => computeHealth(tasks, templateById, DateTime.now());
   List<CategoryHealth> get healthByCategory =>
@@ -182,6 +203,55 @@ class AppState extends ChangeNotifier {
         'expiry': e.expiry?.toIso8601String(),
       }),
     );
+    // A purchase or restore can earn the Pro member badge; billing
+    // notifies through here rather than reload(), so check here too.
+    await _updateBadgeCelebrations();
+    notifyListeners();
+  }
+
+  /// Badge celebrations. The first time this runs (the first reload on
+  /// build 12+), whatever is already earned is recorded as celebrated
+  /// without a show, so existing users never get a flood. After that,
+  /// newly earned badges queue in [pendingCelebrations] and are marked
+  /// celebrated immediately, so a crash cannot re-fire them.
+  Future<void> _updateBadgeCelebrations() async {
+    if (activeHome == null) return;
+    final earned = currentBadges.where((b) => b.earned).toList();
+    final raw = await AppDb.getSetting('celebrated_badges');
+    if (raw == null) {
+      await AppDb.setSetting(
+        'celebrated_badges',
+        jsonEncode([for (final b in earned) b.id]),
+      );
+      return;
+    }
+    final celebrated =
+        (jsonDecode(raw) as List).map((e) => e.toString()).toList();
+    final fresh = newlyEarned([for (final b in earned) b.id], celebrated);
+    if (fresh.isEmpty) return;
+    pendingCelebrations = [
+      ...pendingCelebrations,
+      for (final id in fresh) earned.firstWhere((b) => b.id == id),
+    ];
+    await AppDb.setSetting(
+      'celebrated_badges',
+      jsonEncode([...celebrated, ...fresh]),
+    );
+  }
+
+  /// The Shell calls this once a celebration has been shown.
+  void consumeCelebration(String id) {
+    pendingCelebrations =
+        pendingCelebrations.where((b) => b.id != id).toList();
+    notifyListeners();
+  }
+
+  /// Switch the user's avatar. Persisted, like the accent. A Pro-only
+  /// avatar already picked stays picked if Pro lapses; the picker in
+  /// Profile simply will not offer a change to another locked one.
+  Future<void> setAvatar(AvatarDef a) async {
+    currentAvatar = a;
+    await AppDb.setSetting('avatar', a.id);
     notifyListeners();
   }
 }

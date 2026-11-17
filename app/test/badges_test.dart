@@ -60,6 +60,50 @@ void main() {
       expect(byLabel['Score A']!.progressLabel, 'Now 89');
     });
 
+    test('every badge has a stable id and a celebration blurb', () {
+      final badges = computeBadges(
+        doneCount: 0,
+        receiptsCount: 0,
+        appliancesCount: 0,
+        streakWeeks: 0,
+        score: 0,
+        isPro: false,
+      );
+      expect(badges.map((b) => b.id).toList(), badgeIdOrder);
+      expect(badges.every((b) => b.blurb.isNotEmpty), isTrue);
+    });
+  });
+
+  group('newlyEarned', () {
+    test('returns earned minus celebrated, in definition order', () {
+      expect(
+        newlyEarned(
+          ['pro_member', 'first_job', 'score_a'],
+          ['score_a'],
+        ),
+        ['first_job', 'pro_member'],
+      );
+    });
+
+    test('dedupes repeats in the earned list', () {
+      expect(
+        newlyEarned(['first_job', 'first_job', 'five_jobs'], const []),
+        ['first_job', 'five_jobs'],
+      );
+    });
+
+    test('is empty when nothing is new', () {
+      expect(newlyEarned(['first_job'], ['first_job']), isEmpty);
+      expect(newlyEarned(const [], const []), isEmpty);
+      expect(newlyEarned(const [], ['first_job']), isEmpty);
+    });
+
+    test('unknown earned ids never celebrate', () {
+      expect(newlyEarned(['not_a_badge'], const []), isEmpty);
+    });
+  });
+
+  group('computeBadges thresholds', () {
     test('score A earns at 90 and the pro badge follows the plan', () {
       final pro = computeBadges(
         doneCount: 0,

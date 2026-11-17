@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../app_state.dart';
+import '../avatars.dart';
 import '../badges.dart';
 import '../calendar.dart';
 import '../db.dart';
@@ -120,6 +121,8 @@ class ProfileScreen extends StatelessWidget {
             ],
           ),
         ),
+        const SizedBox(height: 20),
+        _AvatarCard(state: state, onOpenPaywall: onOpenPaywall),
         const SizedBox(height: 20),
         _BadgesCard(state: state, onOpenPaywall: onOpenPaywall),
         const SizedBox(height: 20),
@@ -343,7 +346,7 @@ class ProfileScreen extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'NestKeep 1.2.0 · Made to be kept: no ads, no selling data, your home data lives on your phone.',
+          'NestKeep 1.3.0 · Made to be kept: no ads, no selling data, your home data lives on your phone.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 12.5, color: context.muted),
         ),
@@ -522,6 +525,158 @@ class _BadgesCard extends StatelessWidget {
                         textAlign: TextAlign.center,
                         style:
                             TextStyle(fontSize: 10.5, color: context.muted),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The avatar picker: twelve emoji faces for the Today header, six
+/// free and six Pro. Locked ones open the paywall, in the same quiet
+/// way the Pro badge does. A Pro avatar already picked stays picked
+/// if the plan lapses; it just cannot be re-picked while locked.
+class _AvatarCard extends StatelessWidget {
+  final AppState state;
+  final VoidCallback onOpenPaywall;
+
+  const _AvatarCard({required this.state, required this.onOpenPaywall});
+
+  @override
+  Widget build(BuildContext context) {
+    final current = state.currentAvatar;
+    return NkCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Avatar',
+                style: TextStyle(
+                    fontSize: 16.5,
+                    fontWeight: FontWeight.w700,
+                    color: context.navyText),
+              ),
+              const Spacer(),
+              Text(
+                current.label,
+                style: TextStyle(fontSize: 12.5, color: context.muted),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              mainAxisExtent: 100,
+              crossAxisSpacing: 6,
+              mainAxisSpacing: 10,
+            ),
+            itemCount: avatarCatalogue.length,
+            itemBuilder: (context, i) {
+              final a = avatarCatalogue[i];
+              final selected = a.id == current.id;
+              final locked = a.proOnly && !state.isPro;
+              return GestureDetector(
+                onTap: () {
+                  if (selected) return;
+                  if (locked) {
+                    onOpenPaywall();
+                  } else {
+                    state.setAvatar(a);
+                  }
+                },
+                child: Column(
+                  children: [
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: selected
+                                ? context.primary.withValues(alpha: 0.15)
+                                : context.line.withValues(alpha: 0.5),
+                            border: selected
+                                ? Border.all(
+                                    color: context.primary, width: 2.5)
+                                : null,
+                          ),
+                          child: Center(
+                            child: Opacity(
+                              opacity: locked ? 0.45 : 1,
+                              child: Text(a.emoji,
+                                  style: const TextStyle(fontSize: 24)),
+                            ),
+                          ),
+                        ),
+                        if (selected)
+                          Positioned(
+                            right: -2,
+                            bottom: -2,
+                            child: Container(
+                              width: 17,
+                              height: 17,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: context.primary,
+                              ),
+                              child: const Icon(Icons.check,
+                                  size: 11, color: Colors.white),
+                            ),
+                          ),
+                        if (locked)
+                          Positioned(
+                            right: -2,
+                            bottom: -2,
+                            child: Container(
+                              width: 17,
+                              height: 17,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: context.isDark
+                                    ? NkColors.darkLine
+                                    : NkColors.lightNavy,
+                              ),
+                              child: const Icon(Icons.lock,
+                                  size: 10, color: Colors.white),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      a.label,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: selected ? context.navyText : context.muted,
+                      ),
+                    ),
+                    if (a.proOnly)
+                      Text(
+                        'PRO',
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.6,
+                          color: state.isPro
+                              ? NkColors.green
+                              : context.muted.withValues(alpha: 0.7),
+                        ),
                       ),
                   ],
                 ),
