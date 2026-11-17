@@ -51,7 +51,7 @@ Future<void> completeTask(
   }
 
   await state.reload();
-  await Reminders.reschedule(state.tasks);
+  await Reminders.reschedule(state.tasks, state.appliances);
   SyncService.syncNow();
 }
 
@@ -73,7 +73,7 @@ Future<void> skipTask(AppState state, TaskInstance task) async {
     ));
   }
   await state.reload();
-  await Reminders.reschedule(state.tasks);
+  await Reminders.reschedule(state.tasks, state.appliances);
   SyncService.syncNow();
 }
 
@@ -84,6 +84,6 @@ Future<void> snoozeTask(AppState state, TaskInstance task, int days) async {
     updatedAt: now,
   ));
   await state.reload();
-  await Reminders.reschedule(state.tasks);
+  await Reminders.reschedule(state.tasks, state.appliances);
   SyncService.syncNow();
 }

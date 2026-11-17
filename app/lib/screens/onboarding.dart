@@ -104,7 +104,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final home = widget.state.homes.firstWhere((h) => h.id == homeId);
     await widget.state.setActiveHome(home);
     await Reminders.requestPermissions();
-    await Reminders.reschedule(widget.state.tasks);
+    await Reminders.reschedule(widget.state.tasks, widget.state.appliances);
     widget.onDone();
   }
 
@@ -146,6 +146,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 onPageChanged: (i) => setState(() => _step = i),
                 children: [
                   _stepPage([
+                    Image.asset('assets/icon.png', width: 64, height: 64),
+                    const SizedBox(height: 16),
                     _headline('Welcome home.'),
                     const SizedBox(height: 6),
                     Text(

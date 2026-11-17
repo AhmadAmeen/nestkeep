@@ -6,6 +6,7 @@ import '../app_state.dart';
 import '../db.dart';
 import '../models.dart';
 import '../nameplate.dart';
+import '../reminders.dart';
 import '../sync.dart';
 import '../theme.dart';
 
@@ -125,6 +126,7 @@ class _ApplianceFormScreenState extends State<ApplianceFormScreen> {
       await AppDb.updateAppliance(a);
     }
     await widget.state.reload();
+    await Reminders.reschedule(widget.state.tasks, widget.state.appliances);
     SyncService.syncNow();
     if (mounted) Navigator.of(context).pop();
   }
@@ -133,6 +135,7 @@ class _ApplianceFormScreenState extends State<ApplianceFormScreen> {
     if (widget.existing == null) return;
     await AppDb.deleteAppliance(widget.existing!.id!);
     await widget.state.reload();
+    await Reminders.reschedule(widget.state.tasks, widget.state.appliances);
     SyncService.syncNow();
     if (mounted) Navigator.of(context).pop();
   }

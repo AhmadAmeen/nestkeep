@@ -36,8 +36,32 @@ class Reminders {
     return tz.TZDateTime.from(utc, tz.UTC);
   }
 
-  /// Replace all scheduled reminders with the current plan's next 30 jobs.
-  static Future<void> reschedule(List<TaskInstance> tasks) async {
+  /// The warranty warnings for one appliance: 30 days before the warranty
+  /// runs out, and on the day it ends. Only future dates are returned, and
+  /// an appliance with no purchase date gets none. Pure date math so it
+  /// can be tested.
+  static List<(DateTime, String)> warrantySlots(Appliance a, DateTime now) {
+    final purchase = a.purchaseDate;
+    if (purchase == null) return const [];
+    final expiry = DateTime(
+      purchase.year,
+      purchase.month + a.warrantyMonths,
+      purchase.day,
+    );
+    final today = DateTime(now.year, now.month, now.day);
+    return [
+      (
+        expiry.subtract(const Duration(days: 30)),
+        'The warranty on ${a.name} ends in 30 days'
+      ),
+      (expiry, 'The warranty on ${a.name} ends today'),
+    ].where((s) => !s.$1.isBefore(today)).toList();
+  }
+
+  /// Replace all scheduled reminders with the current plan's next 30 jobs,
+  /// plus a 30-day warning before each appliance warranty runs out.
+  static Future<void> reschedule(List<TaskInstance> tasks,
+      [List<Appliance> appliances = const []]) async {
     await init();
     await _plugin.cancelAll();
     final now = DateTime.now();
@@ -77,6 +101,22 @@ class Reminders {
         );
       }
       scheduled++;
+    }
+    for (final a in appliances) {
+      if (a.id == null) continue;
+      final slots = warrantySlots(a, now);
+      for (var i = 0; i < slots.length; i++) {
+        final when = _atNineLocal(slots[i].$1);
+        if (when.isBefore(tz.TZDateTime.now(tz.UTC))) continue;
+        await _plugin.zonedSchedule(
+          1000000 + a.id! * 2 + i,
+          'NestKeep',
+          slots[i].$2,
+          when,
+          details,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        );
+      }
     }
     // Keep "now" referenced so lints stay quiet about the unused local in
     // release builds where the loop body changes.

@@ -1,7 +1,7 @@
 name: nestkeep
 description: "NestKeep — home maintenance plan, warranty vault, receipt scanner and reminders."
 publish_to: "none"
-version: 1.0.3+6
+version: 1.0.4+7
 
 environment:
   sdk: ^3.10.0

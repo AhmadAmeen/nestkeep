@@ -63,7 +63,7 @@ class _NestKeepAppState extends State<NestKeepApp> {
       }
       await billing.init(state);
       if (state.hasHome) {
-        await Reminders.reschedule(state.tasks);
+        await Reminders.reschedule(state.tasks, state.appliances);
       }
     });
   }

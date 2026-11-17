@@ -10,6 +10,7 @@ import '../app_state.dart';
 import '../db.dart';
 import '../models.dart';
 import '../receipt_parser.dart';
+import '../reminders.dart';
 import '../sync.dart';
 import '../theme.dart';
 import '../widgets.dart';
@@ -291,6 +292,7 @@ class _ReceiptSheetState extends State<ReceiptSheet> {
     }
 
     await state.reload();
+    await Reminders.reschedule(state.tasks, state.appliances);
     SyncService.syncNow();
     if (state.isPro && SyncService.signedIn) {
       final saved = state.receipts.where((r) => r.id == receiptId).firstOrNull;

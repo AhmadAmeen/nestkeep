@@ -76,7 +76,9 @@ class MyHomeScreen extends StatelessWidget {
                             fontWeight: FontWeight.w700,
                             color: context.navyText)),
                     Text(
-                      '${home.addressLine} · built ${home.yearBuilt}',
+                      home.addressLine.isEmpty
+                          ? 'Built ${home.yearBuilt}'
+                          : '${home.addressLine} · built ${home.yearBuilt}',
                       style: TextStyle(color: context.muted, fontSize: 13),
                     ),
                   ],
@@ -149,7 +151,11 @@ class MyHomeScreen extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                             color: context.navyText)),
                     Text(
-                      '${state.tasks.where((t) => t.status == TaskStatus.done).length} jobs done, on the record',
+                      state.tasks
+                              .where((t) => t.status == TaskStatus.done)
+                              .isEmpty
+                          ? 'Finished jobs will live here'
+                          : '${state.tasks.where((t) => t.status == TaskStatus.done).length} jobs done, on the record',
                       style: TextStyle(fontSize: 13, color: context.muted),
                     ),
                   ],

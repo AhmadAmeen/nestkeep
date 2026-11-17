@@ -167,10 +167,6 @@ class PlanScreen extends StatelessWidget {
   String _shortDate(DateTime d) => '${d.month}/${d.day}/${d.year}';
 
   Future<void> _addCustom(BuildContext context) async {
-    if (!state.isPro) {
-      onOpenPaywall();
-      return;
-    }
     final result = await showDialog<_CustomJob>(
       context: context,
       builder: (_) => const _CustomJobDialog(),
@@ -185,7 +181,7 @@ class PlanScreen extends StatelessWidget {
       updatedAt: now,
     ));
     await state.reload();
-    await Reminders.reschedule(state.tasks);
+    await Reminders.reschedule(state.tasks, state.appliances);
     SyncService.syncNow();
   }
 }
