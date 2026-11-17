@@ -47,13 +47,32 @@ def visible_texts(xml):
     return out
 
 
+NODE_RE = re.compile(r"<node[^>]*>")
+BOUNDS_RE = re.compile(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"')
+
+
+def _attr(tag, name):
+    m = re.search(name + r'="([^"]*)"', tag)
+    return m.group(1) if m else ""
+
+
 def find(xml, text, min_y=0):
-    """Center point of the first node whose text/content-desc contains text."""
-    pat = re.compile(
-        r'(?:text|content-desc)="([^"]*)"[^>]*?bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"'
-    )
-    for m in pat.finditer(xml):
-        label, x1, y1, x2, y2 = m.group(1), *map(int, m.groups()[1:])
+    """Center point of the first node whose label contains text.
+
+    Each <node> tag is parsed on its own: Flutter puts labels in
+    content-desc with text="" empty, and a single regex spanning both
+    attributes matches text="" first and swallows the node (the bug that
+    sank the v1/v2 runs), so the attributes are read per-tag here.
+    """
+    for m in NODE_RE.finditer(xml):
+        tag = m.group(0)
+        label = _attr(tag, "content-desc") or _attr(tag, "text")
+        if not label:
+            continue
+        b = BOUNDS_RE.search(tag)
+        if not b:
+            continue
+        x1, y1, x2, y2 = map(int, b.groups())
         if text.lower() in label.lower() and y1 >= min_y:
             return ((x1 + x2) // 2, (y1 + y2) // 2)
     return None
@@ -111,7 +130,7 @@ def fail(msg):
         print("--- logcat tail (filtered) ---", flush=True)
         for ln in interesting[-60:]:
             print(ln, flush=True)
-    except Exception as e:
+    except Exception as e:  # diagnostics must never mask the real failure
         print("diagnostics failed:", e, flush=True)
     sys.exit(1)
 
