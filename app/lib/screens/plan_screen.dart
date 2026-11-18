@@ -9,6 +9,7 @@ import '../reminders.dart';
 import '../sync.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import '../widgets/avatar_menu.dart';
 import 'job_picker.dart';
 import 'plan_calendar.dart';
 import 'today.dart';
@@ -21,12 +22,14 @@ class PlanScreen extends StatefulWidget {
   final AppState state;
   final void Function(TaskInstance) onOpenTask;
   final VoidCallback onOpenPaywall;
+  final VoidCallback? onAvatarTap;
 
   const PlanScreen({
     super.key,
     required this.state,
     required this.onOpenTask,
     required this.onOpenPaywall,
+    this.onAvatarTap,
   });
 
   @override
@@ -75,6 +78,8 @@ class _PlanScreenState extends State<PlanScreen> {
                 textStyle: const TextStyle(fontSize: 14),
               ),
             ),
+            const SizedBox(width: 10),
+            AvatarButton(state: state, onTap: widget.onAvatarTap),
           ],
         ),
         const SizedBox(height: 6),

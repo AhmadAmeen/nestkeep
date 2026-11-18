@@ -4,10 +4,11 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 
 import 'app_state.dart';
 import 'models.dart';
+import 'pricing.dart';
 
 /// Google Play Billing. Products (created in Play Console):
 ///  - nestkeep_pro_monthly  $4.99/mo
-///  - nestkeep_pro_yearly   $29.99/yr with 7-day free trial (hero plan)
+///  - nestkeep_pro_yearly   $29.99/yr with 14-day free trial (hero plan)
 ///  - nestkeep_lifetime     $79.99 one-time
 /// There is no server of ours, so entitlement is read from the Play purchase
 /// stream on this device and re-checked on every app start via restore.
@@ -84,6 +85,16 @@ class Billing {
       if (p.id == id) return p;
     }
     return null;
+  }
+
+  /// The price the paywall should print for a product: the base
+  /// recurring price for a subscription (never a free-trial or intro
+  /// phase's price), the plain price for the one-time product. Null
+  /// until Play has answered, so callers can fall back to list prices.
+  DisplayPrice? displayPrice(String id) {
+    final details = product(id);
+    if (details == null) return null;
+    return displayPriceOf(details);
   }
 
   Future<void> buy(String id) async {

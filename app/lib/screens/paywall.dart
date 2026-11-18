@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../app_state.dart';
 import '../billing.dart';
+import '../pricing.dart';
 import '../theme.dart';
 import '../widgets.dart';
 
@@ -35,16 +36,36 @@ class _PaywallScreenState extends State<PaywallScreen> {
   AppState get state => widget.state;
   Billing get billing => widget.billing;
 
-  String _price(String id, String fallback) =>
-      billing.product(id)?.price ?? fallback;
+  /// The price to print for a product: Play's base recurring price
+  /// once product details have loaded (never a trial or intro phase's
+  /// price — see pricing.dart), the USD list price before that.
+  DisplayPrice _display(String id, String fallback, int fallbackMicros) =>
+      billing.displayPrice(id) ??
+      DisplayPrice(
+        formatted: fallback,
+        amountMicros: fallbackMicros,
+        currencyCode: 'USD',
+      );
+
+  DisplayPrice get _yearly =>
+      _display(Billing.yearlyId, '\$29.99', 29990000);
+  DisplayPrice get _monthly => _display(Billing.monthlyId, '\$4.99', 4990000);
+  DisplayPrice get _lifetime =>
+      _display(Billing.lifetimeId, '\$79.99', 79990000);
 
   String get _buyLabel => switch (_selectedId) {
-        Billing.monthlyId =>
-          'Go Pro, ${_price(Billing.monthlyId, '\$4.99')}/month',
-        Billing.lifetimeId =>
-          'Get Lifetime, ${_price(Billing.lifetimeId, '\$79.99')}',
+        Billing.monthlyId => 'Go Pro, ${_monthly.formatted}/month',
+        Billing.lifetimeId => 'Get Lifetime, ${_lifetime.formatted}',
         _ => 'Start my 14 free days',
       };
+
+  /// The yearly card's subline: the trial, then the real recurring
+  /// price, then its per-month equivalent when the currency is known.
+  String get _yearlySub {
+    final perMonth = _yearly.perMonthFormatted;
+    return '14 days free, then ${_yearly.formatted} a year.'
+        '${perMonth == null ? '' : ' That\'s $perMonth a month.'}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,10 +104,8 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       context,
                       id: Billing.yearlyId,
                       name: 'Pro Yearly',
-                      price: '${_price(Billing.yearlyId, '\$29.99')}/year',
-                      sub: '14 days free, then '
-                          '${_price(Billing.yearlyId, '\$29.99')} a year. '
-                          'That\'s \$2.50 a month.',
+                      price: '${_yearly.formatted}/year',
+                      sub: _yearlySub,
                       pill: 'BEST VALUE',
                     ),
                     const SizedBox(height: 12),
@@ -94,7 +113,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       context,
                       id: Billing.monthlyId,
                       name: 'Pro Monthly',
-                      price: '${_price(Billing.monthlyId, '\$4.99')}/month',
+                      price: '${_monthly.formatted}/month',
                       sub: 'Flexible. Cancel anytime.',
                     ),
                     const SizedBox(height: 12),
@@ -102,7 +121,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       context,
                       id: Billing.lifetimeId,
                       name: 'Lifetime',
-                      price: '${_price(Billing.lifetimeId, '\$79.99')} once',
+                      price: '${_lifetime.formatted} once',
                       sub: 'Pay once, yours forever. No subscription.',
                     ),
                   ],
@@ -316,7 +335,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                   TextSpan(text: '\$120 a year', style: strong),
                   const TextSpan(text: ' for this. Pro is '),
                   TextSpan(
-                      text: '${_price(Billing.yearlyId, '\$29.99')}.',
+                      text: '${_yearly.formatted} a year.',
                       style: strong),
                 ],
               ),
@@ -535,8 +554,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
               ),
               Text(
                 'Cancel anytime in Google Play. The trial converts only '
-                'if you stay. Prices shown in USD; Google Play shows '
-                'your local price at checkout.',
+                'if you stay. Prices shown in your local currency.',
                 textAlign: TextAlign.center,
                 style:
                     TextStyle(fontSize: 12, color: context.muted, height: 1.4),

@@ -15,9 +15,11 @@ import 'screens/paywall.dart';
 import 'screens/plan_screen.dart';
 import 'screens/profile.dart';
 import 'screens/scan.dart';
+import 'screens/settings.dart';
 import 'screens/task_detail.dart';
 import 'screens/today.dart';
 import 'theme.dart';
+import 'widgets/avatar_menu.dart';
 import 'widgets/badge_celebration.dart';
 
 Future<void> main() async {
@@ -266,6 +268,34 @@ class _ShellState extends State<Shell> {
     ));
   }
 
+  void _openSettings() {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => Scaffold(
+        appBar: AppBar(title: const Text('Settings')),
+        body: SettingsScreen(
+          state: state,
+          themeMode: widget.themeMode,
+          onThemeChanged: widget.onThemeChanged,
+          onOpenPaywall: _openPaywall,
+          onShowIntro: _openIntro,
+        ),
+      ),
+    ));
+  }
+
+  /// The header avatar lives on every tab; its menu is the way to the
+  /// picker, the paywall and Settings from anywhere. The Profile row
+  /// is omitted while already on the Profile tab.
+  void _onAvatarTap() {
+    showAvatarMenu(
+      context,
+      state: state,
+      onOpenPaywall: _openPaywall,
+      onOpenSettings: _openSettings,
+      onOpenProfile: _tab == 4 ? null : () => setState(() => _tab = 4),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final pages = [
@@ -274,21 +304,27 @@ class _ShellState extends State<Shell> {
         onSeeAllPlan: () => setState(() => _tab = 1),
         onOpenTask: _openTask,
         onQuickDone: (t) => completeTask(state, t),
+        onAvatarTap: _onAvatarTap,
       ),
-      PlanScreen(state: state, onOpenTask: _openTask, onOpenPaywall: _openPaywall),
-      ScanScreen(state: state),
+      PlanScreen(
+        state: state,
+        onOpenTask: _openTask,
+        onOpenPaywall: _openPaywall,
+        onAvatarTap: _onAvatarTap,
+      ),
+      ScanScreen(state: state, onAvatarTap: _onAvatarTap),
       MyHomeScreen(
         state: state,
         onOpenScan: () => setState(() => _tab = 2),
         onOpenCosts: _openExpenses,
         onOpenPaywall: _openPaywall,
+        onAvatarTap: _onAvatarTap,
       ),
       ProfileScreen(
         state: state,
-        themeMode: widget.themeMode,
-        onThemeChanged: widget.onThemeChanged,
         onOpenPaywall: _openPaywall,
-        onShowIntro: _openIntro,
+        onOpenSettings: _openSettings,
+        onAvatarTap: _onAvatarTap,
         onAddHome: () => Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => OnboardingScreen(
             state: state,

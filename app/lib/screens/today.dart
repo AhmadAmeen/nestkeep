@@ -6,6 +6,7 @@ import '../models.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import '../widgets/animated_check.dart';
+import '../widgets/avatar_menu.dart';
 import 'history.dart';
 import 'score_detail.dart';
 
@@ -16,6 +17,7 @@ class TodayScreen extends StatelessWidget {
   final VoidCallback onSeeAllPlan;
   final void Function(TaskInstance) onOpenTask;
   final Future<void> Function(TaskInstance) onQuickDone;
+  final VoidCallback? onAvatarTap;
 
   const TodayScreen({
     super.key,
@@ -23,6 +25,7 @@ class TodayScreen extends StatelessWidget {
     required this.onSeeAllPlan,
     required this.onOpenTask,
     required this.onQuickDone,
+    this.onAvatarTap,
   });
 
   @override
@@ -91,15 +94,7 @@ class TodayScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(width: 4),
-            CircleAvatar(
-              radius: 21,
-              backgroundColor: context.primary
-                  .withValues(alpha: context.isDark ? 0.28 : 0.14),
-              child: Text(
-                state.currentAvatar.emoji,
-                style: const TextStyle(fontSize: 21),
-              ),
-            ),
+            AvatarButton(state: state, onTap: onAvatarTap),
           ],
         ),
         const SizedBox(height: 18),

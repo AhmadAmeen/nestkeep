@@ -1,0 +1,120 @@
+import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:in_app_purchase_android/billing_client_wrappers.dart';
+import 'package:in_app_purchase_android/in_app_purchase_android.dart';
+import 'package:intl/intl.dart';
+
+/// Display pricing for the paywall, resolved honestly.
+///
+/// A subscription's [ProductDetails.price] is the FIRST pricing phase
+/// of the first offer Play returns. With a free-trial offer in front,
+/// that phase is the trial itself, so the raw price reads "Free" and
+/// the paywall once announced "Pro is Free" (build 19 fix). The price
+/// a subscriber actually pays, period after period, is the base plan's
+/// recurring phase: positive, and recurring forever. Everything the
+/// paywall prints derives from that phase, never from an intro phase.
+
+/// One pricing phase, flattened out of the platform wrappers so the
+/// choice of the base phase is a pure, testable function.
+class PricePhase {
+  /// ISO 8601 billing period, e.g. 'P1Y' or 'P1M'.
+  final String period;
+  final int amountMicros;
+  final String formattedPrice;
+  final String currencyCode;
+
+  /// True when the phase recurs until cancelled (the base plan's own
+  /// phase), false for finite phases like a free trial or an intro
+  /// price that runs for a fixed number of cycles.
+  final bool recursForever;
+
+  const PricePhase({
+    required this.period,
+    required this.amountMicros,
+    required this.formattedPrice,
+    required this.currencyCode,
+    required this.recursForever,
+  });
+}
+
+/// The phase that represents what a subscriber pays every period once
+/// any offer has run its course: a positive phase that recurs forever.
+/// Falls back to the last positive phase (base phases follow intro
+/// phases), and to null when no phase costs anything.
+PricePhase? pickBasePhase(List<PricePhase> phases) {
+  final positive = [for (final p in phases) if (p.amountMicros > 0) p];
+  if (positive.isEmpty) return null;
+  for (final p in positive) {
+    if (p.recursForever) return p;
+  }
+  return positive.last;
+}
+
+/// A price ready to print: Play's own formatting for the amount, plus
+/// the raw amount and currency for derived figures like a per-month
+/// equivalent.
+class DisplayPrice {
+  final String formatted;
+  final int? amountMicros;
+  final String? currencyCode;
+
+  const DisplayPrice({
+    required this.formatted,
+    this.amountMicros,
+    this.currencyCode,
+  });
+
+  /// The per-month equivalent of a yearly price, formatted in the
+  /// price's own currency; null when the amount or currency is unknown
+  /// (callers then simply omit the clause).
+  String? get perMonthFormatted {
+    final micros = amountMicros;
+    final code = currencyCode;
+    if (micros == null || code == null) return null;
+    return NumberFormat.simpleCurrency(name: code)
+        .format(micros / 12 / 1000000);
+  }
+}
+
+/// Every pricing phase of a product, across all of its offers. On
+/// Android the platform wrapper behind any one offer entry carries the
+/// whole offer list, so one entry is enough. Empty for one-time
+/// products and on platforms without phase data.
+List<PricePhase> phasesOf(ProductDetails details) {
+  if (details is GooglePlayProductDetails) {
+    final offers = details.productDetails.subscriptionOfferDetails;
+    if (offers != null) {
+      return [
+        for (final offer in offers)
+          for (final p in offer.pricingPhases)
+            PricePhase(
+              period: p.billingPeriod,
+              amountMicros: p.priceAmountMicros,
+              formattedPrice: p.formattedPrice,
+              currencyCode: p.priceCurrencyCode,
+              recursForever:
+                  p.recurrenceMode == RecurrenceMode.infiniteRecurring,
+            ),
+      ];
+    }
+  }
+  return const [];
+}
+
+/// The display price for one product: the base phase for a
+/// subscription; for a one-time product (or a platform without phases)
+/// the product's own price, which is already its base price.
+DisplayPrice displayPriceOf(ProductDetails details) {
+  final base = pickBasePhase(phasesOf(details));
+  if (base != null) {
+    return DisplayPrice(
+      formatted: base.formattedPrice,
+      amountMicros: base.amountMicros,
+      currencyCode: base.currencyCode,
+    );
+  }
+  return DisplayPrice(
+    formatted: details.price,
+    amountMicros: (details.rawPrice * 1000000).round(),
+    currencyCode: details.currencyCode,
+  );
+}

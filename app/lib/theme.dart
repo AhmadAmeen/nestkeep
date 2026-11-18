@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 /// NestKeep design tokens — approved mockup v5 (HouseWell-grid language).
 /// Light: white cards on #F7F8FA, navy #0A1E46. Dark: cards #141F36 on
 /// #0A1120. The primary colour is an accent the user picks from one close
-/// purple family (indigo, purple or plum; purple is the default, build
-/// 11); light and dark stay exactly as approved, the accent simply wears
-/// over both.
+/// purple family (purple, violet, plum or fuchsia; purple is the
+/// default, builds 11 and 19); light and dark stay exactly as approved,
+/// the accent simply wears over both.
 /// Amber is an accent only: grade chip, streak, tip card edge, typical marker.
 class NkColors {
   // Light
@@ -36,40 +36,54 @@ class NkColors {
 
 /// The user-pickable app colour: one close purple family (build 11
 /// replaced the mockup v6 blue/orange/pink set, which clashed with each
-/// other). Purple is the default. Each accent has a light and a dark
-/// variant so it sits properly on both themes.
-enum AppAccent { indigo, purple, plum }
+/// other; build 19 widened the family to four and retired indigo, the
+/// bluest of the set, for a true violet). Purple is the default. Each
+/// accent has a light and a dark variant so it sits properly on both
+/// themes.
+enum AppAccent { purple, violet, plum, fuchsia }
 
 extension AppAccentValues on AppAccent {
   Color get lightPrimary => switch (this) {
-        AppAccent.indigo => const Color(0xFF5457E8),
         AppAccent.purple => const Color(0xFF6D4DF6),
+        AppAccent.violet => const Color(0xFF7C3AED),
         AppAccent.plum => const Color(0xFFB44FD8),
+        AppAccent.fuchsia => const Color(0xFFC026D3),
       };
 
   Color get darkPrimary => switch (this) {
-        AppAccent.indigo => const Color(0xFF9AA0FF),
         AppAccent.purple => const Color(0xFFA48FFF),
+        AppAccent.violet => const Color(0xFFA78BFA),
         AppAccent.plum => const Color(0xFFD98CFF),
+        AppAccent.fuchsia => const Color(0xFFE879F9),
       };
 
   Color primaryFor(bool dark) => dark ? darkPrimary : lightPrimary;
 
   String get label => switch (this) {
-        AppAccent.indigo => 'Indigo',
         AppAccent.purple => 'Purple',
+        AppAccent.violet => 'Violet',
         AppAccent.plum => 'Plum',
+        AppAccent.fuchsia => 'Fuchsia',
       };
+
+  /// Custom colours are part of Pro (build 19): Purple, the default,
+  /// is free for everyone and the rest unlock with Pro. Mirrors
+  /// AvatarDef.proOnly, grandfathering included: a stored custom
+  /// colour stays applied while free, it just cannot be newly picked.
+  bool get proOnly => this != AppAccent.purple;
 }
 
 /// Parse a stored accent preference, tolerantly. The current names map
-/// to themselves; the retired mockup v6 names land on their nearest
-/// purple-family neighbour (blue -> purple, orange -> plum, pink ->
-/// plum); anything unknown or missing falls back to the purple default.
+/// to themselves; retired names land on their nearest purple-family
+/// neighbour (indigo -> violet since build 19; the mockup v6 names
+/// blue -> purple, orange -> plum, pink -> plum); anything unknown or
+/// missing falls back to the purple default.
 AppAccent parseAppAccent(String? raw) => switch (raw) {
-      'indigo' => AppAccent.indigo,
       'purple' => AppAccent.purple,
+      'violet' => AppAccent.violet,
       'plum' => AppAccent.plum,
+      'fuchsia' => AppAccent.fuchsia,
+      'indigo' => AppAccent.violet,
       'blue' => AppAccent.purple,
       'orange' => AppAccent.plum,
       'pink' => AppAccent.plum,

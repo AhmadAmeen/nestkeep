@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
 /// Profile badges: small, honest milestones that make progress visible.
-/// Computed from plain counts so the logic is testable without the
+/// Computed from plain tallies so the logic is testable without the
 /// whole app state. Nothing here is bought or randomised; a badge is
-/// earned by using the app, and the Pro member badge is simply the
-/// marker of a subscription.
+/// earned by using the app, and the member badges are simply the
+/// markers of a subscription. Every criterion is something the app
+/// itself records (build 19 grew the shelf from 8 to 54).
 class BadgeResult {
   /// Stable id, used to remember which badges have been celebrated.
   final String id;
@@ -31,16 +32,128 @@ class BadgeResult {
   });
 }
 
+/// Everything the badge shelf is computed from, tallied by AppState
+/// out of the records the app already keeps. A field only ever counts
+/// something the app can point at: a finished job, a logged cost, a
+/// filed document.
+class BadgeTallies {
+  final int doneCount;
+
+  /// Finished on or before the day they were due.
+  final int onTimeCount;
+
+  /// Finished by the owner: doneBy empty or "Me" (the done dialog's
+  /// own wording is "Me, or the pro's name").
+  final int diyCount;
+
+  /// Finished by someone else, i.e. a named pro.
+  final int hiredProCount;
+
+  /// Distinct job categories with at least one completion, out of the
+  /// categories the library covers.
+  final int categoriesDone;
+  final int categoriesTotal;
+  final int streakWeeks;
+  final int score;
+  final int expensesCount;
+  final double totalSpent;
+  final int receiptsCount;
+  final int appliancesCount;
+  final int appliancesWithPhoto;
+  final int appliancesWithCondition;
+  final int appliancesWithWarranty;
+  final int docsCount;
+  final int spacesCount;
+
+  /// Jobs the user added themselves (no library template).
+  final int customJobsCount;
+  final int homesCount;
+  final bool signedIn;
+  final bool isPro;
+  final bool isLifetime;
+
+  const BadgeTallies({
+    this.doneCount = 0,
+    this.onTimeCount = 0,
+    this.diyCount = 0,
+    this.hiredProCount = 0,
+    this.categoriesDone = 0,
+    this.categoriesTotal = 0,
+    this.streakWeeks = 0,
+    this.score = 0,
+    this.expensesCount = 0,
+    this.totalSpent = 0,
+    this.receiptsCount = 0,
+    this.appliancesCount = 0,
+    this.appliancesWithPhoto = 0,
+    this.appliancesWithCondition = 0,
+    this.appliancesWithWarranty = 0,
+    this.docsCount = 0,
+    this.spacesCount = 0,
+    this.customJobsCount = 0,
+    this.homesCount = 0,
+    this.signedIn = false,
+    this.isPro = false,
+    this.isLifetime = false,
+  });
+}
+
 /// Badge ids in definition order; celebrations fire in this order.
 const badgeIdOrder = [
   'first_job',
   'five_jobs',
   'ten_jobs',
-  'first_scan',
-  'appliances_tracked',
+  'twentyfive_jobs',
+  'fifty_jobs',
+  'hundred_jobs',
+  'two_hundred_jobs',
+  'one_week_streak',
+  'two_week_streak',
   'four_week_streak',
+  'eight_week_streak',
+  'twelve_week_streak',
+  'twenty_six_week_streak',
+  'fifty_two_week_streak',
+  'score_80',
   'score_a',
+  'score_95',
+  'score_100',
+  'on_time_first',
+  'on_time_10',
+  'on_time_25',
+  'on_time_50',
+  'diy_first',
+  'diy_10',
+  'hired_pro',
+  'categories_3',
+  'categories_5',
+  'categories_all',
+  'first_appliance',
+  'appliances_tracked',
+  'appliances_5',
+  'appliances_10',
+  'appliance_photo',
+  'appliance_condition',
+  'appliance_warranty',
+  'first_expense',
+  'expenses_10',
+  'expenses_25',
+  'spent_500',
+  'spent_2000',
+  'first_scan',
+  'scans_5',
+  'scans_10',
+  'custom_job_first',
+  'custom_jobs_5',
+  'custom_jobs_10',
+  'first_doc',
+  'docs_5',
+  'docs_10',
+  'first_space',
+  'second_home',
+  'signed_in',
   'pro_member',
+  'lifetime_member',
 ];
 
 /// The badges that have been earned but not yet celebrated: earned
@@ -57,77 +170,501 @@ List<String> newlyEarned(
   ];
 }
 
-List<BadgeResult> computeBadges({
-  required int doneCount,
-  required int receiptsCount,
-  required int appliancesCount,
-  required int streakWeeks,
-  required int score,
-  required bool isPro,
-}) {
-  String of(int have, int target) =>
-      '${have.clamp(0, target)} of $target';
+List<BadgeResult> computeBadges(BadgeTallies t) {
+  String of(int have, int target) => '${have.clamp(0, target)} of $target';
+  BadgeResult milestone({
+    required String id,
+    required IconData icon,
+    required String label,
+    required String blurb,
+    required int have,
+    required int target,
+    bool proBadge = false,
+    String? unearnedProgress,
+  }) {
+    final earned = have >= target;
+    return BadgeResult(
+      id: id,
+      icon: icon,
+      label: label,
+      earned: earned,
+      blurb: blurb,
+      // A one-step badge needs no counter; bigger milestones count up.
+      progressLabel: earned
+          ? null
+          : (unearnedProgress ?? (target > 1 ? of(have, target) : null)),
+      isProBadge: proBadge,
+    );
+  }
+
   return [
-    BadgeResult(
+    // Jobs done.
+    milestone(
       id: 'first_job',
       icon: Icons.eco_outlined,
       label: 'First job done',
-      earned: doneCount >= 1,
       blurb: 'Your first job is in the books.',
+      have: t.doneCount,
+      target: 1,
+      unearnedProgress: null,
     ),
-    BadgeResult(
+    milestone(
       id: 'five_jobs',
       icon: Icons.task_alt,
       label: '5 jobs done',
-      earned: doneCount >= 5,
       blurb: 'Five down. The house can feel it.',
+      have: t.doneCount,
+      target: 5,
+      unearnedProgress: null,
     ),
-    BadgeResult(
+    milestone(
       id: 'ten_jobs',
       icon: Icons.military_tech_outlined,
       label: '10 jobs done',
-      earned: doneCount >= 10,
       blurb: 'Ten jobs done. Proper keeper.',
-      progressLabel: doneCount >= 10 ? null : of(doneCount, 10),
+      have: t.doneCount,
+      target: 10,
     ),
-    BadgeResult(
-      id: 'first_scan',
-      icon: Icons.document_scanner_outlined,
-      label: 'First scan',
-      earned: receiptsCount >= 1,
-      blurb: 'Receipt scanned and safely filed.',
+    milestone(
+      id: 'twentyfive_jobs',
+      icon: Icons.emoji_events_outlined,
+      label: '25 jobs done',
+      blurb: 'Twenty-five jobs. This home is looked after.',
+      have: t.doneCount,
+      target: 25,
     ),
-    BadgeResult(
-      id: 'appliances_tracked',
-      icon: Icons.kitchen_outlined,
-      label: 'Appliances tracked',
-      earned: appliancesCount >= 3,
-      blurb: 'Your appliances are on the record.',
-      progressLabel: appliancesCount >= 3 ? null : of(appliancesCount, 3),
+    milestone(
+      id: 'fifty_jobs',
+      icon: Icons.stars_outlined,
+      label: '50 jobs done',
+      blurb: 'Fifty jobs done. Serious keeping.',
+      have: t.doneCount,
+      target: 50,
     ),
-    BadgeResult(
+    milestone(
+      id: 'hundred_jobs',
+      icon: Icons.diamond_outlined,
+      label: '100 jobs done',
+      blurb: 'One hundred jobs. A serious keeper.',
+      have: t.doneCount,
+      target: 100,
+    ),
+    milestone(
+      id: 'two_hundred_jobs',
+      icon: Icons.castle_outlined,
+      label: '200 jobs done',
+      blurb: 'Two hundred jobs. This home runs like a castle.',
+      have: t.doneCount,
+      target: 200,
+    ),
+    // Weekly streaks.
+    milestone(
+      id: 'one_week_streak',
+      icon: Icons.local_fire_department_outlined,
+      label: '1-week streak',
+      blurb: 'One week on the board. The streak has started.',
+      have: t.streakWeeks,
+      target: 1,
+      unearnedProgress: null,
+    ),
+    milestone(
+      id: 'two_week_streak',
+      icon: Icons.local_fire_department_outlined,
+      label: '2-week streak',
+      blurb: 'Two weeks running. Momentum is building.',
+      have: t.streakWeeks,
+      target: 2,
+    ),
+    milestone(
       id: 'four_week_streak',
       icon: Icons.local_fire_department,
       label: '4-week streak',
-      earned: streakWeeks >= 4,
       blurb: 'Four weeks in a row. That is a habit now.',
-      progressLabel: streakWeeks >= 4 ? null : of(streakWeeks, 4),
+      have: t.streakWeeks,
+      target: 4,
     ),
-    BadgeResult(
+    milestone(
+      id: 'eight_week_streak',
+      icon: Icons.whatshot_outlined,
+      label: '8-week streak',
+      blurb: 'Eight weeks straight. Nothing is slipping.',
+      have: t.streakWeeks,
+      target: 8,
+    ),
+    milestone(
+      id: 'twelve_week_streak',
+      icon: Icons.whatshot_outlined,
+      label: '12-week streak',
+      blurb: 'Twelve weeks. A whole season of showing up.',
+      have: t.streakWeeks,
+      target: 12,
+    ),
+    milestone(
+      id: 'twenty_six_week_streak',
+      icon: Icons.whatshot,
+      label: '26-week streak',
+      blurb: 'Half a year of weeks, every one with a job done.',
+      have: t.streakWeeks,
+      target: 26,
+    ),
+    milestone(
+      id: 'fifty_two_week_streak',
+      icon: Icons.whatshot,
+      label: '52-week streak',
+      blurb: 'A full year of weeks. That is dedication.',
+      have: t.streakWeeks,
+      target: 52,
+    ),
+    // The health score.
+    milestone(
+      id: 'score_80',
+      icon: Icons.trending_up,
+      label: 'Score 80+',
+      blurb: 'Past 80. The home is in good shape.',
+      have: t.score,
+      target: 80,
+      unearnedProgress: 'Now ${t.score}',
+    ),
+    milestone(
       id: 'score_a',
       icon: Icons.favorite_outline,
       label: 'Score A',
-      earned: score >= 90,
       blurb: 'Grade A. This home is in top shape.',
-      progressLabel: score >= 90 ? null : 'Now $score',
+      have: t.score,
+      target: 90,
+      unearnedProgress: 'Now ${t.score}',
+    ),
+    milestone(
+      id: 'score_95',
+      icon: Icons.favorite,
+      label: 'Score 95+',
+      blurb: 'Ninety-five. Nearly flawless.',
+      have: t.score,
+      target: 95,
+      unearnedProgress: 'Now ${t.score}',
+    ),
+    milestone(
+      id: 'score_100',
+      icon: Icons.verified_outlined,
+      label: 'Perfect score',
+      blurb: 'A perfect 100. Nothing overdue, nothing looming.',
+      have: t.score,
+      target: 100,
+      unearnedProgress: 'Now ${t.score}',
+    ),
+    // Finished on or before the due day.
+    milestone(
+      id: 'on_time_first',
+      icon: Icons.schedule_outlined,
+      label: 'On time',
+      blurb: 'Finished before it was due. Ahead of the game.',
+      have: t.onTimeCount,
+      target: 1,
+      unearnedProgress: null,
+    ),
+    milestone(
+      id: 'on_time_10',
+      icon: Icons.schedule,
+      label: '10 on time',
+      blurb: 'Ten jobs beaten to the deadline.',
+      have: t.onTimeCount,
+      target: 10,
+    ),
+    milestone(
+      id: 'on_time_25',
+      icon: Icons.more_time_outlined,
+      label: '25 on time',
+      blurb: 'Twenty-five on time. This plan runs like clockwork.',
+      have: t.onTimeCount,
+      target: 25,
+    ),
+    milestone(
+      id: 'on_time_50',
+      icon: Icons.more_time,
+      label: '50 on time',
+      blurb: 'Fifty jobs done early or on the day. Remarkable.',
+      have: t.onTimeCount,
+      target: 50,
+    ),
+    // Who did the work.
+    milestone(
+      id: 'diy_first',
+      icon: Icons.handyman_outlined,
+      label: 'Did it myself',
+      blurb: 'Rolled up your sleeves and did it yourself.',
+      have: t.diyCount,
+      target: 1,
+      unearnedProgress: null,
+    ),
+    milestone(
+      id: 'diy_10',
+      icon: Icons.construction_outlined,
+      label: '10 DIY jobs',
+      blurb: 'Ten jobs with your own hands. Money saved, skills earned.',
+      have: t.diyCount,
+      target: 10,
+    ),
+    milestone(
+      id: 'hired_pro',
+      icon: Icons.engineering_outlined,
+      label: 'Hired a pro',
+      blurb: 'You brought in a pro and it is on the record.',
+      have: t.hiredProCount,
+      target: 1,
+      unearnedProgress: null,
+    ),
+    // Coverage across the home's areas.
+    milestone(
+      id: 'categories_3',
+      icon: Icons.grid_view_outlined,
+      label: '3 areas covered',
+      blurb: 'Jobs done in three different areas of the home.',
+      have: t.categoriesDone,
+      target: 3,
+    ),
+    milestone(
+      id: 'categories_5',
+      icon: Icons.grid_view,
+      label: '5 areas covered',
+      blurb: 'Five areas of the home have had attention.',
+      have: t.categoriesDone,
+      target: 5,
+    ),
+    BadgeResult(
+      id: 'categories_all',
+      icon: Icons.home_outlined,
+      label: 'Whole home covered',
+      earned: t.categoriesTotal > 0 && t.categoriesDone >= t.categoriesTotal,
+      blurb: 'Every area of the home has had a job done.',
+      progressLabel: t.categoriesTotal > 0 &&
+              t.categoriesDone < t.categoriesTotal
+          ? of(t.categoriesDone, t.categoriesTotal)
+          : null,
+    ),
+    // Appliances.
+    milestone(
+      id: 'first_appliance',
+      icon: Icons.kitchen_outlined,
+      label: 'First appliance',
+      blurb: 'Your first appliance is on the record.',
+      have: t.appliancesCount,
+      target: 1,
+      unearnedProgress: null,
+    ),
+    milestone(
+      id: 'appliances_tracked',
+      icon: Icons.kitchen,
+      label: 'Appliances tracked',
+      blurb: 'Your appliances are on the record.',
+      have: t.appliancesCount,
+      target: 3,
+    ),
+    milestone(
+      id: 'appliances_5',
+      icon: Icons.microwave_outlined,
+      label: '5 appliances',
+      blurb: 'Five appliances tracked, warranties and all.',
+      have: t.appliancesCount,
+      target: 5,
+    ),
+    milestone(
+      id: 'appliances_10',
+      icon: Icons.microwave,
+      label: '10 appliances',
+      blurb: 'Ten appliances on the record. A full house.',
+      have: t.appliancesCount,
+      target: 10,
+    ),
+    milestone(
+      id: 'appliance_photo',
+      icon: Icons.photo_camera_outlined,
+      label: 'Appliance photo',
+      blurb: 'A photo filed with an appliance. Proof, ready.',
+      have: t.appliancesWithPhoto,
+      target: 1,
+      unearnedProgress: null,
+    ),
+    milestone(
+      id: 'appliance_condition',
+      icon: Icons.health_and_safety_outlined,
+      label: 'Condition checked',
+      blurb: "You rated an appliance's condition yourself.",
+      have: t.appliancesWithCondition,
+      target: 1,
+      unearnedProgress: null,
+    ),
+    milestone(
+      id: 'appliance_warranty',
+      icon: Icons.shield_outlined,
+      label: 'Warranty filed',
+      blurb: 'An appliance with its warranty on record.',
+      have: t.appliancesWithWarranty,
+      target: 1,
+      unearnedProgress: null,
+    ),
+    // Money.
+    milestone(
+      id: 'first_expense',
+      icon: Icons.receipt_long_outlined,
+      label: 'First cost logged',
+      blurb: 'The first cost is on the books.',
+      have: t.expensesCount,
+      target: 1,
+      unearnedProgress: null,
+    ),
+    milestone(
+      id: 'expenses_10',
+      icon: Icons.receipt_long,
+      label: '10 costs logged',
+      blurb: 'Ten costs logged. The money picture is forming.',
+      have: t.expensesCount,
+      target: 10,
+    ),
+    milestone(
+      id: 'expenses_25',
+      icon: Icons.request_quote_outlined,
+      label: '25 costs logged',
+      blurb: 'Twenty-five costs. Nothing slips through.',
+      have: t.expensesCount,
+      target: 25,
+    ),
+    BadgeResult(
+      id: 'spent_500',
+      icon: Icons.savings_outlined,
+      label: '\$500 tracked',
+      earned: t.totalSpent >= 500,
+      blurb: 'Five hundred dollars of home costs, all accounted for.',
+      progressLabel:
+          t.totalSpent >= 500 ? null : '\$${t.totalSpent.floor()} of \$500',
+    ),
+    BadgeResult(
+      id: 'spent_2000',
+      icon: Icons.account_balance_outlined,
+      label: '\$2,000 tracked',
+      earned: t.totalSpent >= 2000,
+      blurb: 'Two thousand dollars tracked. You know what this home costs.',
+      progressLabel: t.totalSpent >= 2000
+          ? null
+          : '\$${t.totalSpent.floor()} of \$2,000',
+    ),
+    // Receipt scans.
+    milestone(
+      id: 'first_scan',
+      icon: Icons.document_scanner_outlined,
+      label: 'First scan',
+      blurb: 'Receipt scanned and safely filed.',
+      have: t.receiptsCount,
+      target: 1,
+      unearnedProgress: null,
+    ),
+    milestone(
+      id: 'scans_5',
+      icon: Icons.document_scanner,
+      label: '5 scans',
+      blurb: 'Five receipts scanned. The shoebox is retiring.',
+      have: t.receiptsCount,
+      target: 5,
+    ),
+    milestone(
+      id: 'scans_10',
+      icon: Icons.qr_code_scanner_outlined,
+      label: '10 scans',
+      blurb: 'Ten receipts scanned and filed.',
+      have: t.receiptsCount,
+      target: 10,
+    ),
+    // Jobs the user added themselves.
+    milestone(
+      id: 'custom_job_first',
+      icon: Icons.add_task,
+      label: 'My own job',
+      blurb: 'You added a job of your own to the plan.',
+      have: t.customJobsCount,
+      target: 1,
+      unearnedProgress: null,
+    ),
+    milestone(
+      id: 'custom_jobs_5',
+      icon: Icons.playlist_add_check_outlined,
+      label: '5 own jobs',
+      blurb: 'Five of your own jobs on the plan.',
+      have: t.customJobsCount,
+      target: 5,
+    ),
+    milestone(
+      id: 'custom_jobs_10',
+      icon: Icons.playlist_add_check,
+      label: '10 own jobs',
+      blurb: 'Ten own jobs. The plan is truly yours now.',
+      have: t.customJobsCount,
+      target: 10,
+    ),
+    // Documents and spaces.
+    milestone(
+      id: 'first_doc',
+      icon: Icons.folder_outlined,
+      label: 'First document',
+      blurb: "The home's first paper is filed.",
+      have: t.docsCount,
+      target: 1,
+      unearnedProgress: null,
+    ),
+    milestone(
+      id: 'docs_5',
+      icon: Icons.folder,
+      label: '5 documents',
+      blurb: 'Five documents filed. Deeds, insurance, manuals, safe.',
+      have: t.docsCount,
+      target: 5,
+    ),
+    milestone(
+      id: 'docs_10',
+      icon: Icons.folder_copy_outlined,
+      label: '10 documents',
+      blurb: 'Ten documents in the vault.',
+      have: t.docsCount,
+      target: 10,
+    ),
+    milestone(
+      id: 'first_space',
+      icon: Icons.meeting_room_outlined,
+      label: 'First space',
+      blurb: 'You named a space in the home and started filing by it.',
+      have: t.spacesCount,
+      target: 1,
+      unearnedProgress: null,
+    ),
+    // Homes and account.
+    milestone(
+      id: 'second_home',
+      icon: Icons.holiday_village_outlined,
+      label: 'Second home',
+      blurb: 'A second home, kept in the same place.',
+      have: t.homesCount,
+      target: 2,
+    ),
+    BadgeResult(
+      id: 'signed_in',
+      icon: Icons.cloud_done_outlined,
+      label: 'Backed up',
+      earned: t.signedIn,
+      blurb: 'Signed in. Your home is backed up and follows you.',
     ),
     BadgeResult(
       id: 'pro_member',
       icon: Icons.workspace_premium_outlined,
       label: 'Pro member',
-      earned: isPro,
+      earned: t.isPro,
       blurb: 'Welcome to Pro. Everything is unlocked.',
-      progressLabel: isPro ? null : 'Go Pro',
+      progressLabel: t.isPro ? null : 'Go Pro',
+      isProBadge: true,
+    ),
+    BadgeResult(
+      id: 'lifetime_member',
+      icon: Icons.all_inclusive_outlined,
+      label: 'Lifetime member',
+      earned: t.isLifetime,
+      blurb: 'Lifetime. Yours for good.',
       isProBadge: true,
     ),
   ];

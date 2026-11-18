@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
 
@@ -43,6 +44,12 @@ class AppState extends ChangeNotifier {
   AppAccent accent = AppAccent.purple;
   AvatarDef currentAvatar = avatarById(null);
 
+  /// The optional account, mirrored from Firebase Auth on init and on
+  /// every reload (sign-in and sign-out both end in a reload). Guest
+  /// mode is the default: false and null.
+  bool signedIn = false;
+  String? accountEmail;
+
   /// Badges earned but not yet celebrated, in celebration order.
   /// Filled by reload(); the Shell drains it one at a time via
   /// [consumeCelebration].
@@ -75,6 +82,8 @@ class AppState extends ChangeNotifier {
       }
     }
 
+    _refreshAccount();
+
     final savedAccent = await AppDb.getSetting('accent');
     accent = parseAppAccent(savedAccent);
 
@@ -97,8 +106,23 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Mirror the Firebase account into plain fields the UI and the
+  /// badge tallies can read. Firebase may be unreachable or (in tests)
+  /// uninitialised; both simply mean guest mode.
+  void _refreshAccount() {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      signedIn = user != null;
+      accountEmail = user?.email;
+    } catch (_) {
+      signedIn = false;
+      accountEmail = null;
+    }
+  }
+
   Future<void> reload() async {
     if (activeHome == null) return;
+    _refreshAccount();
     final id = activeHome!.id!;
     if (!profiles.containsKey(id)) {
       final p = await loadProfile(id);
@@ -153,15 +177,56 @@ class AppState extends ChangeNotifier {
     return derivedSelectionFromTasks(homeTasks);
   }
 
-  /// The badge shelf, from the same numbers the Profile card shows.
-  List<BadgeResult> get currentBadges => computeBadges(
-        doneCount: tasks.where((t) => t.status == TaskStatus.done).length,
-        receiptsCount: receipts.length,
-        appliancesCount: appliances.length,
-        streakWeeks: streakWeeks,
-        score: health.score,
-        isPro: isPro,
-      );
+  /// The badge shelf, from tallies of the records this home holds.
+  /// On-time means finished on or before the due day; DIY means the
+  /// finisher was the owner (doneBy empty or "Me", the done dialog's
+  /// own wording), and a named finisher counts as a hired pro.
+  List<BadgeResult> get currentBadges {
+    final done = tasks.where((t) => t.status == TaskStatus.done).toList();
+    bool diy(String? by) {
+      final who = (by ?? '').trim().toLowerCase();
+      return who.isEmpty || who == 'me';
+    }
+
+    bool onTime(TaskInstance t) {
+      final d = t.doneDate;
+      if (d == null) return false;
+      return !DateTime(d.year, d.month, d.day)
+          .isAfter(DateTime(t.dueDate.year, t.dueDate.month, t.dueDate.day));
+    }
+
+    return computeBadges(BadgeTallies(
+      doneCount: done.length,
+      onTimeCount: done.where(onTime).length,
+      diyCount: done.where((t) => diy(t.doneBy)).length,
+      hiredProCount: done.where((t) => !diy(t.doneBy)).length,
+      categoriesDone: done.map((t) => t.category).toSet().length,
+      categoriesTotal: templates.map((t) => t.category).toSet().length,
+      streakWeeks: streakWeeks,
+      score: health.score,
+      expensesCount: expenses.length,
+      totalSpent: expenses.fold(0.0, (sum, e) => sum + e.amount),
+      receiptsCount: receipts.length,
+      appliancesCount: appliances.length,
+      appliancesWithPhoto: appliances
+          .where((a) =>
+              (a.id != null && appliancePhotos.containsKey(a.id)) ||
+              a.imagePath != null)
+          .length,
+      appliancesWithCondition:
+          appliances.where((a) => a.condition != null).length,
+      appliancesWithWarranty: appliances
+          .where((a) => a.purchaseDate != null && a.warrantyMonths > 0)
+          .length,
+      docsCount: docs.length,
+      spacesCount: spaces.length,
+      customJobsCount: tasks.where((t) => t.templateId == null).length,
+      homesCount: homes.length,
+      signedIn: signedIn,
+      isPro: isPro,
+      isLifetime: entitlement.source == EntitlementSource.lifetime,
+    ));
+  }
 
   HealthResult get health => computeHealth(tasks, templateById, DateTime.now());
   List<CategoryHealth> get healthByCategory =>
@@ -202,7 +267,10 @@ class AppState extends ChangeNotifier {
   }
 
   /// Switch the app colour. Persisted, and the whole app (light and
-  /// dark alike) repaints in the new accent.
+  /// dark alike) repaints in the new accent. Custom colours are Pro
+  /// (build 19); a custom colour already picked stays picked if Pro
+  /// lapses — the Settings picker simply will not offer a change to
+  /// another locked one, exactly like Pro avatars.
   Future<void> setAccent(AppAccent a) async {
     accent = a;
     await AppDb.setSetting('accent', a.name);

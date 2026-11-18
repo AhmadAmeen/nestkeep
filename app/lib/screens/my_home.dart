@@ -4,6 +4,7 @@ import '../app_state.dart';
 import '../models.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import '../widgets/avatar_menu.dart';
 import 'appliances.dart';
 import 'belongings.dart';
 import 'contractors.dart';
@@ -22,6 +23,7 @@ class MyHomeScreen extends StatelessWidget {
   final VoidCallback onOpenScan;
   final VoidCallback onOpenCosts;
   final VoidCallback onOpenPaywall;
+  final VoidCallback? onAvatarTap;
 
   const MyHomeScreen({
     super.key,
@@ -29,6 +31,7 @@ class MyHomeScreen extends StatelessWidget {
     required this.onOpenScan,
     required this.onOpenCosts,
     required this.onOpenPaywall,
+    this.onAvatarTap,
   });
 
   @override
@@ -40,11 +43,18 @@ class MyHomeScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
-        Text('My home',
-            style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                color: context.navyText)),
+        Row(
+          children: [
+            Expanded(
+              child: Text('My home',
+                  style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: context.navyText)),
+            ),
+            AvatarButton(state: state, onTap: onAvatarTap),
+          ],
+        ),
         const SizedBox(height: 12),
         NkCard(
           child: Row(

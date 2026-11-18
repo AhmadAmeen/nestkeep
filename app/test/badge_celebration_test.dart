@@ -6,14 +6,8 @@ import 'package:nestkeep/widgets/badge_celebration.dart';
 void main() {
   testWidgets('celebration shows the badge and dismisses via Nice',
       (tester) async {
-    final badge = computeBadges(
-      doneCount: 1,
-      receiptsCount: 0,
-      appliancesCount: 0,
-      streakWeeks: 0,
-      score: 0,
-      isPro: false,
-    ).first;
+    final badge =
+        computeBadges(const BadgeTallies(doneCount: 1)).first;
     var dismissed = false;
     await tester.pumpWidget(
       MaterialApp(

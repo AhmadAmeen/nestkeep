@@ -15,14 +15,16 @@ import '../reminders.dart';
 import '../sync.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import '../widgets/avatar_menu.dart';
 
 /// Receipt scanning: fully on-device ML Kit OCR. Nothing leaves the phone.
 /// The scan itself and the extracted data are free for everyone, unlimited.
 /// Only storing + syncing the receipt IMAGE inside the app is Pro.
 class ScanScreen extends StatefulWidget {
   final AppState state;
+  final VoidCallback? onAvatarTap;
 
-  const ScanScreen({super.key, required this.state});
+  const ScanScreen({super.key, required this.state, this.onAvatarTap});
 
   @override
   State<ScanScreen> createState() => _ScanScreenState();
@@ -76,9 +78,18 @@ class _ScanScreenState extends State<ScanScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
-        Text('Scan a receipt',
-            style: TextStyle(
-                fontSize: 24, fontWeight: FontWeight.w800, color: context.navyText)),
+        Row(
+          children: [
+            Expanded(
+              child: Text('Scan a receipt',
+                  style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: context.navyText)),
+            ),
+            AvatarButton(state: widget.state, onTap: widget.onAvatarTap),
+          ],
+        ),
         const SizedBox(height: 6),
         Text(
           'NestKeep reads the store, date, items and total on your phone. '
