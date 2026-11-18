@@ -104,69 +104,130 @@ class SectionHeading extends StatelessWidget {
   }
 }
 
-/// The thick health ring with score + grade in the middle.
-class HealthRing extends StatelessWidget {
+/// The health ring with score + grade in the middle: a thin, modern
+/// arc (build 18) in a sweep gradient of its own colour family, on the
+/// theme's line colour as its track. When the ring appears, and
+/// whenever the score changes, the arc sweeps from the previous value
+/// to the new one over ~900ms and the centre number counts in sync.
+class HealthRing extends StatefulWidget {
   final int score;
   final String grade;
   final double size;
 
   const HealthRing({super.key, required this.score, required this.grade, this.size = 132});
 
+  @override
+  State<HealthRing> createState() => _HealthRingState();
+}
+
+class _HealthRingState extends State<HealthRing>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  );
+  late final Animation<double> _curve =
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+
+  double _from = 0;
+  double _to = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // First appearance: sweep up from zero.
+    _to = widget.score.toDouble();
+    _controller.forward();
+  }
+
+  @override
+  void didUpdateWidget(HealthRing old) {
+    super.didUpdateWidget(old);
+    if (old.score != widget.score) {
+      // Continue from wherever the sweep currently sits, so a score
+      // change mid-animation never snaps back.
+      _from = _displayed;
+      _to = widget.score.toDouble();
+      _controller.forward(from: 0);
+    }
+  }
+
+  double get _displayed => _from + (_to - _from) * _curve.value;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   /// A healthy home (grade A or B) wears the user's app colour; a home
   /// that needs work keeps the warning colours, amber then red.
   Color _colorFor(BuildContext context) {
-    if (grade == 'A' || grade == 'B') return context.primary;
-    if (score >= 50) return NkColors.amber;
+    if (widget.grade == 'A' || widget.grade == 'B') return context.primary;
+    if (widget.score >= 50) return NkColors.amber;
     return NkColors.red;
   }
 
   @override
   Widget build(BuildContext context) {
     final color = _colorFor(context);
+    final size = widget.size;
     return SizedBox(
       width: size,
       height: size,
-      child: CustomPaint(
-        painter: _RingPainter(score: score, color: color, track: context.line),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '$score',
-                style: TextStyle(
-                  fontSize: size * 0.34,
-                  fontWeight: FontWeight.w800,
-                  color: context.navyText,
-                  height: 1,
-                ),
+      child: AnimatedBuilder(
+        animation: _curve,
+        builder: (context, _) {
+          final value = _displayed;
+          return CustomPaint(
+            painter: _RingPainter(
+              value: value,
+              color: color,
+              track: context.line,
+            ),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${value.round()}',
+                    style: TextStyle(
+                      fontSize: size * 0.34,
+                      fontWeight: FontWeight.w800,
+                      color: context.navyText,
+                      height: 1,
+                    ),
+                  ),
+                  Text(
+                    widget.grade,
+                    style: TextStyle(
+                      fontSize: size * 0.15,
+                      fontWeight: FontWeight.w700,
+                      color: color,
+                    ),
+                  ),
+                ],
               ),
-              Text(
-                grade,
-                style: TextStyle(
-                  fontSize: size * 0.15,
-                  fontWeight: FontWeight.w700,
-                  color: color,
-                ),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
 }
 
 class _RingPainter extends CustomPainter {
-  final int score;
+  /// The animated score, 0..100 (fractional mid-sweep).
+  final double value;
   final Color color;
   final Color track;
 
-  _RingPainter({required this.score, required this.color, required this.track});
+  _RingPainter({required this.value, required this.color, required this.track});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final stroke = size.width * 0.105;
+    // Thin and modern: ~11px at the ring's default 132px size.
+    final stroke = size.width * (11 / 132);
     final rect = Offset.zero & size;
     final arcRect = rect.deflate(stroke / 2);
     final trackPaint = Paint()
@@ -174,15 +235,23 @@ class _RingPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = stroke;
     canvas.drawArc(arcRect, 0, math.pi * 2, false, trackPaint);
+    if (value <= 0) return;
+    // The arc wears a sweep gradient in its own colour family: the
+    // lighter tint where the sweep starts (at the top), deepening to
+    // the full colour towards the leading edge.
+    final gradient = SweepGradient(
+      colors: [Color.lerp(color, Colors.white, 0.45)!, color],
+      transform: const GradientRotation(-math.pi / 2),
+    );
     final paint = Paint()
-      ..color = color
+      ..shader = gradient.createShader(arcRect)
       ..style = PaintingStyle.stroke
       ..strokeWidth = stroke
       ..strokeCap = StrokeCap.round;
     canvas.drawArc(
       arcRect,
       -math.pi / 2,
-      math.pi * 2 * (score / 100),
+      math.pi * 2 * (value / 100).clamp(0.0, 1.0),
       false,
       paint,
     );
@@ -190,7 +259,7 @@ class _RingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RingPainter old) =>
-      old.score != score || old.color != color || old.track != track;
+      old.value != value || old.color != color || old.track != track;
 }
 
 /// The small pill that says where an appliance is in its life:

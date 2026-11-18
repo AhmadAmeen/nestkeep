@@ -4,6 +4,7 @@ import 'package:nestkeep/app_state.dart';
 import 'package:nestkeep/lifespan.dart';
 import 'package:nestkeep/models.dart';
 import 'package:nestkeep/screens/appliance_detail.dart';
+import 'package:nestkeep/screens/appliances.dart';
 import 'package:nestkeep/screens/my_home.dart';
 import 'package:nestkeep/theme.dart';
 import 'package:nestkeep/widgets.dart';
@@ -161,9 +162,16 @@ void main() {
   });
 
   testWidgets(
-      'My Home card: undated appliance shows the empty bar, the unset '
-      'chip and the PRO pill; the chip opens the picker, not the detail',
-      (tester) async {
+      'Appliance card (via the My Home hub tile): undated appliance '
+      'shows the empty bar, the unset chip and the PRO pill; the chip '
+      'opens the picker, not the detail', (tester) async {
+    // A tall surface so the whole hub, tiles included, is built.
+    tester.view.physicalSize = const Size(900, 2800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
     final s = AppState();
     s.activeHome = Home(
       id: 1,
@@ -185,6 +193,13 @@ void main() {
         ),
       ),
     ));
+    // The hub itself lists nothing inline: the card lives behind the
+    // Appliances tile (its sublabel is unique on this page).
+    expect(find.text('Add a purchase date to see its life'), findsNothing);
+    await tester.tap(find.text('1 tracked'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AppliancesScreen), findsOneWidget);
+
     expect(find.text('Add a purchase date to see its life'), findsOneWidget);
     expect(find.text('Set condition'), findsOneWidget);
     expect(find.text('PRO'), findsOneWidget);
