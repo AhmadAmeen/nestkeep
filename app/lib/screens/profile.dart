@@ -9,11 +9,14 @@ import '../widgets/avatar_menu.dart';
 import '../widgets/avatar_picker.dart';
 
 /// Profile: who you are in the app — the optional account, your
-/// avatar, your plan, your homes and the badges you have earned.
-/// How the app looks and handles data lives in Settings (build 19).
-/// Guest mode is the default and the full app.
+/// avatar, how the app looks (build 20 moved Appearance here from
+/// Settings), your plan, your homes and the badges you have earned.
+/// Settings keeps data and about. Guest mode is the default and the
+/// full app.
 class ProfileScreen extends StatelessWidget {
   final AppState state;
+  final ThemeMode themeMode;
+  final void Function(ThemeMode) onThemeChanged;
   final VoidCallback onOpenPaywall;
   final VoidCallback onAddHome;
   final VoidCallback onOpenSettings;
@@ -22,6 +25,8 @@ class ProfileScreen extends StatelessWidget {
   const ProfileScreen({
     super.key,
     required this.state,
+    required this.themeMode,
+    required this.onThemeChanged,
     required this.onOpenPaywall,
     required this.onAddHome,
     required this.onOpenSettings,
@@ -122,6 +127,22 @@ class ProfileScreen extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         _AvatarCard(state: state, onOpenPaywall: onOpenPaywall),
+        const SizedBox(height: 20),
+        const SectionHeading('Appearance'),
+        const SizedBox(height: 10),
+        NkCard(
+          child: SegmentedButton<ThemeMode>(
+            segments: const [
+              ButtonSegment(value: ThemeMode.system, label: Text('Auto')),
+              ButtonSegment(value: ThemeMode.light, label: Text('Light')),
+              ButtonSegment(value: ThemeMode.dark, label: Text('Dark')),
+            ],
+            selected: {themeMode},
+            onSelectionChanged: (s) => onThemeChanged(s.first),
+          ),
+        ),
+        const SizedBox(height: 20),
+        _ColourCard(state: state, onOpenPaywall: onOpenPaywall),
         const SizedBox(height: 20),
         _BadgesCard(state: state),
         const SizedBox(height: 20),
@@ -242,6 +263,9 @@ class ProfileScreen extends StatelessWidget {
                         }
                         await state.reload();
                         SyncService.syncNow();
+                        if (context.mounted) {
+                          showTicker(context, 'Home deleted');
+                        }
                       },
                     ),
                 ],
@@ -282,7 +306,7 @@ class ProfileScreen extends StatelessWidget {
                           color: context.navyText),
                     ),
                     Text(
-                      'Appearance, app colour, your data',
+                      'Your data and about',
                       style: TextStyle(fontSize: 13, color: context.muted),
                     ),
                   ],
@@ -323,7 +347,8 @@ class _BadgesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final earned = state.currentBadges.where((b) => b.earned).toList();
+    final allBadges = state.currentBadges;
+    final earned = allBadges.where((b) => b.earned).toList();
     return NkCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -346,7 +371,7 @@ class _BadgesCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  '${earned.length} earned',
+                  '${earned.length} earned out of ${allBadges.length}',
                   style: TextStyle(
                     fontSize: 11.5,
                     fontWeight: FontWeight.w700,
@@ -446,7 +471,136 @@ class _AvatarCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          AvatarPicker(state: state, onLockedTap: onOpenPaywall),
+          AvatarPicker(
+            state: state,
+            onLockedTap: onOpenPaywall,
+            collapsible: true,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The app-colour picker: purple, violet, plum, fuchsia or orange,
+/// worn by the whole app in light and dark alike. Lives on Profile
+/// with the rest of Appearance (build 20; it was in Settings for one
+/// build). Custom colours are Pro, with the avatar rule: one already
+/// in use stays applied while free.
+class _ColourCard extends StatelessWidget {
+  final AppState state;
+  final VoidCallback onOpenPaywall;
+
+  const _ColourCard({required this.state, required this.onOpenPaywall});
+
+  @override
+  Widget build(BuildContext context) {
+    return NkCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'App colour',
+            style: TextStyle(
+                fontSize: 16.5,
+                fontWeight: FontWeight.w700,
+                color: context.navyText),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final accent in AppAccent.values) ...[
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      if (state.accent == accent) return;
+                      // Custom colours are Pro (build 19), with the
+                      // avatar rule: one already in use stays applied
+                      // while free, it just cannot be newly picked.
+                      if (accent.proOnly && !state.isPro) {
+                        onOpenPaywall();
+                      } else {
+                        state.setAccent(accent);
+                      }
+                    },
+                    child: Column(
+                      children: [
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: accent.primaryFor(context.isDark),
+                                shape: BoxShape.circle,
+                                border: state.accent == accent
+                                    ? Border.all(
+                                        color: context.navyText, width: 2.5)
+                                    : null,
+                              ),
+                            ),
+                            if (accent.proOnly &&
+                                !state.isPro &&
+                                state.accent != accent)
+                              Positioned(
+                                right: -2,
+                                bottom: -2,
+                                child: Container(
+                                  width: 17,
+                                  height: 17,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: context.isDark
+                                        ? NkColors.darkLine
+                                        : NkColors.lightNavy,
+                                  ),
+                                  child: const Icon(Icons.lock,
+                                      size: 10, color: Colors.white),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          accent.label,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: state.accent == accent
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: context.navyText,
+                          ),
+                        ),
+                        if (accent.proOnly)
+                          Text(
+                            'PRO',
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.6,
+                              color: state.isPro
+                                  ? NkColors.green
+                                  : context.muted.withValues(alpha: 0.7),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            state.isPro
+                ? 'Works in light and dark.'
+                : 'Works in light and dark. Violet, Plum, Fuchsia and '
+                    'Orange come with Pro; a colour already in use '
+                    'stays yours.',
+            style: TextStyle(fontSize: 12.5, color: context.muted),
+          ),
         ],
       ),
     );

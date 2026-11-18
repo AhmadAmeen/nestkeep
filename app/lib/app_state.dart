@@ -1,12 +1,16 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import 'avatars.dart';
 import 'badges.dart';
 import 'db.dart';
 import 'health.dart';
+import 'local_images.dart';
 import 'models.dart';
 import 'plan.dart';
 import 'theme.dart';
@@ -43,6 +47,34 @@ class AppState extends ChangeNotifier {
   Entitlement entitlement = Entitlement.free;
   AppAccent accent = AppAccent.purple;
   AvatarDef currentAvatar = avatarById(null);
+
+  /// The custom (own-photo) avatar's file in the documents folder, or
+  /// null when the user has not added one (build 20). Local only.
+  String? customAvatarPath;
+
+  /// Home photos by home id (documents folder paths, build 20).
+  /// Local only, never synced, like receipt photos.
+  Map<int, String> homePhotos = {};
+
+  bool get hasCustomAvatar => customAvatarPath != null;
+
+  /// The stored custom photo as a file, when it is really there.
+  File? get customAvatarFile {
+    final path = customAvatarPath;
+    if (path == null) return null;
+    final f = File(path);
+    return f.existsSync() ? f : null;
+  }
+
+  /// The avatar to draw: the custom def only counts while its photo
+  /// exists; a missing photo falls back to the default house avatar.
+  AvatarDef get displayAvatar =>
+      currentAvatar.id == 'custom' && !hasCustomAvatar
+          ? avatarById('house')
+          : currentAvatar;
+
+  /// A home's photo path, or null when it has none.
+  String? homePhotoPath(int homeId) => homePhotos[homeId];
 
   /// The optional account, mirrored from Firebase Auth on init and on
   /// every reload (sign-in and sign-out both end in a reload). Guest
@@ -102,8 +134,27 @@ class AppState extends ChangeNotifier {
       );
       await reload();
     }
+    await _resolveLocalPhotos();
     loaded = true;
     notifyListeners();
+  }
+
+  /// Point at the local photo files that exist in the documents
+  /// folder: the custom avatar and each home's photo (build 20).
+  /// Files only — nothing here is read from or written to sync.
+  Future<void> _resolveLocalPhotos() async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final avatarFile = File(p.join(dir.path, customAvatarFileName));
+      customAvatarPath = await avatarFile.exists() ? avatarFile.path : null;
+      for (final h in homes) {
+        if (h.id == null) continue;
+        final f = File(p.join(dir.path, homePhotoFileName(h.id!)));
+        if (await f.exists()) homePhotos[h.id!] = f.path;
+      }
+    } catch (_) {
+      // No documents folder (tests, odd platforms): no local photos.
+    }
   }
 
   /// Mirror the Firebase account into plain fields the UI and the
@@ -195,9 +246,30 @@ class AppState extends ChangeNotifier {
           .isAfter(DateTime(t.dueDate.year, t.dueDate.month, t.dueDate.day));
     }
 
+    int dayCompare(TaskInstance t) {
+      final d = t.doneDate;
+      if (d == null) return 0;
+      return DateTime(d.year, d.month, d.day)
+          .compareTo(DateTime(t.dueDate.year, t.dueDate.month, t.dueDate.day));
+    }
+
+    final donePerDay = <String, int>{};
+    for (final t in done) {
+      final d = t.doneDate;
+      if (d == null) continue;
+      final key = '${d.year}-${d.month}-${d.day}';
+      donePerDay[key] = (donePerDay[key] ?? 0) + 1;
+    }
+
     return computeBadges(BadgeTallies(
       doneCount: done.length,
       onTimeCount: done.where(onTime).length,
+      earlyCount: done.where((t) => dayCompare(t) < 0).length,
+      lateCount: done.where((t) => dayCompare(t) > 0).length,
+      skippedCount:
+          tasks.where((t) => t.status == TaskStatus.skipped).length,
+      maxDoneInOneDay:
+          donePerDay.values.fold(0, (a, b) => a > b ? a : b),
       diyCount: done.where((t) => diy(t.doneBy)).length,
       hiredProCount: done.where((t) => !diy(t.doneBy)).length,
       categoriesDone: done.map((t) => t.category).toSet().length,
@@ -207,6 +279,8 @@ class AppState extends ChangeNotifier {
       expensesCount: expenses.length,
       totalSpent: expenses.fold(0.0, (sum, e) => sum + e.amount),
       receiptsCount: receipts.length,
+      receiptsWithPhoto:
+          receipts.where((r) => r.imagePath != null).length,
       appliancesCount: appliances.length,
       appliancesWithPhoto: appliances
           .where((a) =>
@@ -336,6 +410,68 @@ class AppState extends ChangeNotifier {
   Future<void> setAvatar(AvatarDef a) async {
     currentAvatar = a;
     await AppDb.setSetting('avatar', a.id);
+    notifyListeners();
+  }
+
+  /// Save a picked photo as the custom avatar (build 20, Pro): the
+  /// picture is center-cropped square and downscaled into the
+  /// documents folder, then selected. Local only, never synced.
+  /// Returns false when the photo could not be processed.
+  Future<bool> setCustomAvatarFromPicked(String pickedPath) async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final dest = p.join(dir.path, customAvatarFileName);
+      if (!await writeSquareAvatar(pickedPath, dest)) return false;
+      customAvatarPath = dest;
+      await setAvatar(customAvatarDef);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Remove the custom avatar photo. If it was the selected avatar,
+  /// the default house avatar takes its place.
+  Future<void> removeCustomAvatar() async {
+    final path = customAvatarPath;
+    customAvatarPath = null;
+    if (path != null) {
+      try {
+        await File(path).delete();
+      } catch (_) {}
+    }
+    if (currentAvatar.id == 'custom') {
+      await setAvatar(avatarById('house'));
+    } else {
+      notifyListeners();
+    }
+  }
+
+  /// Save a picked photo as a home's photo (build 20, free): downscaled
+  /// into the documents folder as `home_photo_<homeId>.jpg`. Local
+  /// only, never synced — only the home's facts sync, never this file.
+  Future<bool> setHomePhoto(int homeId, String pickedPath) async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final dest = p.join(dir.path, homePhotoFileName(homeId));
+      if (!await writeHomePhoto(pickedPath, dest)) return false;
+      homePhotos[homeId] = dest;
+      notifyListeners();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Remove a home's photo (the file and the pointer; the home's
+  /// facts are untouched).
+  Future<void> removeHomePhoto(int homeId) async {
+    final path = homePhotos.remove(homeId);
+    if (path != null) {
+      try {
+        await File(path).delete();
+      } catch (_) {}
+    }
     notifyListeners();
   }
 }

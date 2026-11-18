@@ -4,6 +4,42 @@ import '../app_state.dart';
 import '../theme.dart';
 import 'avatar_picker.dart';
 
+/// The avatar as drawn everywhere: the user's own photo when the
+/// custom avatar is picked and its file exists (build 20), otherwise
+/// the chosen emoji on an accent tint. A custom pick whose photo is
+/// missing falls back to the default house avatar.
+class AvatarFace extends StatelessWidget {
+  final AppState state;
+  final double radius;
+
+  const AvatarFace({super.key, required this.state, required this.radius});
+
+  @override
+  Widget build(BuildContext context) {
+    final tint = context.primary.withValues(
+      alpha: context.isDark ? 0.28 : 0.14,
+    );
+    final photo =
+        state.currentAvatar.id == 'custom' ? state.customAvatarFile : null;
+    if (photo != null) {
+      return CircleAvatar(
+        radius: radius,
+        backgroundColor: tint,
+        backgroundImage: FileImage(photo),
+        onBackgroundImageError: (_, _) {},
+      );
+    }
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: tint,
+      child: Text(
+        state.displayAvatar.emoji,
+        style: TextStyle(fontSize: radius),
+      ),
+    );
+  }
+}
+
 /// The header avatar, identical on every tab (build 19): the chosen
 /// emoji on an accent tint. Tapping it opens the avatar menu.
 class AvatarButton extends StatelessWidget {
@@ -16,16 +52,7 @@ class AvatarButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: CircleAvatar(
-        radius: 21,
-        backgroundColor: context.primary.withValues(
-          alpha: context.isDark ? 0.28 : 0.14,
-        ),
-        child: Text(
-          state.currentAvatar.emoji,
-          style: const TextStyle(fontSize: 21),
-        ),
-      ),
+      child: AvatarFace(state: state, radius: 21),
     );
   }
 }
@@ -46,7 +73,7 @@ Future<void> showAvatarMenu(
     context: context,
     showDragHandle: true,
     builder: (sheetContext) {
-      final avatar = state.currentAvatar;
+      final avatar = state.displayAvatar;
       return SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -57,16 +84,7 @@ Future<void> showAvatarMenu(
               children: [
                 Row(
                   children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundColor: sheetContext.primary.withValues(
-                        alpha: sheetContext.isDark ? 0.28 : 0.14,
-                      ),
-                      child: Text(
-                        avatar.emoji,
-                        style: const TextStyle(fontSize: 30),
-                      ),
-                    ),
+                    AvatarFace(state: state, radius: 30),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(

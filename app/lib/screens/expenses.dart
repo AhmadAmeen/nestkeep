@@ -284,6 +284,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       await AppDb.deleteExpense(existing!.id!);
       await state.reload();
       SyncService.syncNow();
+      if (mounted) showTicker(context, 'Expense deleted');
       return;
     }
 
@@ -317,6 +318,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     }
     await state.reload();
     SyncService.syncNow();
+    if (mounted) {
+      showTicker(context, isEdit ? 'Expense updated' : 'Expense added');
+    }
   }
 
   /// The delete confirmation, shown over the edit form.

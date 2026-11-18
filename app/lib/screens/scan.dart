@@ -55,7 +55,7 @@ class _ScanScreenState extends State<ScanScreen> {
       }
       final parsed = parseReceipt(lines);
       if (!mounted) return;
-      await showModalBottomSheet<void>(
+      final sheetResult = await showModalBottomSheet<String>(
         context: context,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
@@ -66,6 +66,9 @@ class _ScanScreenState extends State<ScanScreen> {
         ),
       );
       await widget.state.reload();
+      if (sheetResult == 'saved' && mounted) {
+        showTicker(context, 'Receipt saved');
+      }
     } catch (e) {
       setState(() => _error = 'That scan did not work. Try a flatter, brighter photo.');
     } finally {
@@ -314,7 +317,9 @@ class _ReceiptSheetState extends State<ReceiptSheet> {
       final saved = state.receipts.where((r) => r.id == receiptId).firstOrNull;
       if (saved != null) SyncService.syncReceiptImage(saved);
     }
-    if (mounted) Navigator.of(context).pop();
+    // Pop with the outcome so the Scan screen can confirm the save
+    // once the sheet has closed (build 20).
+    if (mounted) Navigator.of(context).pop('saved');
   }
 
   @override

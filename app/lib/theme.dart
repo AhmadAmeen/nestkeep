@@ -34,13 +34,12 @@ class NkColors {
   static const lifeGreen = Color(0xFF12B76A);
 }
 
-/// The user-pickable app colour: one close purple family (build 11
-/// replaced the mockup v6 blue/orange/pink set, which clashed with each
-/// other; build 19 widened the family to four and retired indigo, the
-/// bluest of the set, for a true violet). Purple is the default. Each
-/// accent has a light and a dark variant so it sits properly on both
-/// themes.
-enum AppAccent { purple, violet, plum, fuchsia }
+/// The user-pickable app colour: the close purple family of builds
+/// 11-19 (purple, violet, plum, fuchsia), plus the orange of the
+/// mockup v6 set, which returned in build 20 as a fifth accent in its
+/// own right. Purple is the default. Each accent has a light and a
+/// dark variant so it sits properly on both themes.
+enum AppAccent { purple, violet, plum, fuchsia, orange }
 
 extension AppAccentValues on AppAccent {
   Color get lightPrimary => switch (this) {
@@ -48,6 +47,7 @@ extension AppAccentValues on AppAccent {
         AppAccent.violet => const Color(0xFF7C3AED),
         AppAccent.plum => const Color(0xFFB44FD8),
         AppAccent.fuchsia => const Color(0xFFC026D3),
+        AppAccent.orange => const Color(0xFFF97316),
       };
 
   Color get darkPrimary => switch (this) {
@@ -55,6 +55,7 @@ extension AppAccentValues on AppAccent {
         AppAccent.violet => const Color(0xFFA78BFA),
         AppAccent.plum => const Color(0xFFD98CFF),
         AppAccent.fuchsia => const Color(0xFFE879F9),
+        AppAccent.orange => const Color(0xFFFB923C),
       };
 
   Color primaryFor(bool dark) => dark ? darkPrimary : lightPrimary;
@@ -64,6 +65,7 @@ extension AppAccentValues on AppAccent {
         AppAccent.violet => 'Violet',
         AppAccent.plum => 'Plum',
         AppAccent.fuchsia => 'Fuchsia',
+        AppAccent.orange => 'Orange',
       };
 
   /// Custom colours are part of Pro (build 19): Purple, the default,
@@ -74,18 +76,21 @@ extension AppAccentValues on AppAccent {
 }
 
 /// Parse a stored accent preference, tolerantly. The current names map
-/// to themselves; retired names land on their nearest purple-family
-/// neighbour (indigo -> violet since build 19; the mockup v6 names
-/// blue -> purple, orange -> plum, pink -> plum); anything unknown or
-/// missing falls back to the purple default.
+/// to themselves — 'orange' included since build 20, when the colour
+/// came back as a real accent (build-9 users who stored 'orange' meant
+/// exactly this colour; builds 11-19 mapped it to plum only because
+/// orange had been removed). Retired names land on their nearest
+/// neighbour (indigo -> violet since build 19; the other mockup v6
+/// names blue -> purple, pink -> plum); anything unknown or missing
+/// falls back to the purple default.
 AppAccent parseAppAccent(String? raw) => switch (raw) {
       'purple' => AppAccent.purple,
       'violet' => AppAccent.violet,
       'plum' => AppAccent.plum,
       'fuchsia' => AppAccent.fuchsia,
+      'orange' => AppAccent.orange,
       'indigo' => AppAccent.violet,
       'blue' => AppAccent.purple,
-      'orange' => AppAccent.plum,
       'pink' => AppAccent.plum,
       _ => AppAccent.purple,
     };

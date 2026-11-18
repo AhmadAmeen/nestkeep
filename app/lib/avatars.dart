@@ -33,9 +33,23 @@ const avatarCatalogue = [
   AvatarDef(id: 'dragon', emoji: '🐲', label: 'Dragon', proOnly: true),
 ];
 
+/// The user's own photo avatar (build 20, Pro): not a catalogue
+/// entry — the picker adds it as a final tile of its own. The photo
+/// itself lives in the app documents folder as custom_avatar.jpg,
+/// local only, never synced, like receipt photos. The emoji here is
+/// only a placeholder glyph; wherever avatars render, a stored photo
+/// replaces it, and a missing photo falls back to the house avatar.
+const customAvatarDef = AvatarDef(
+  id: 'custom',
+  emoji: '📷',
+  label: 'Yours',
+  proOnly: true,
+);
+
 /// Resolve a stored avatar id, falling back to the house avatar for
 /// null or unknown values.
 AvatarDef avatarById(String? id) {
+  if (id == customAvatarDef.id) return customAvatarDef;
   for (final a in avatarCatalogue) {
     if (a.id == id) return a;
   }

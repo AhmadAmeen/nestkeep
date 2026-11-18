@@ -6,14 +6,44 @@ Map<String, BadgeResult> _byId(List<BadgeResult> badges) =>
 
 void main() {
   group('computeBadges', () {
-    test('the shelf holds at least 50 badges, ids in definition order', () {
+    test('the shelf holds exactly 80 badges, ids in definition order', () {
       final badges = computeBadges(const BadgeTallies());
-      expect(badges.length, greaterThanOrEqualTo(50));
+      expect(badges.length, 80);
+      expect(badgeIdOrder.length, 80);
       expect(badges.map((b) => b.id).toList(), badgeIdOrder);
       expect(badges.map((b) => b.id).toSet().length, badges.length,
           reason: 'badge ids are unique');
       expect(badges.every((b) => b.blurb.isNotEmpty), isTrue);
       expect(badges.every((b) => b.label.isNotEmpty), isTrue);
+    });
+
+    test('the original 54 ids survive, in their original order', () {
+      // Celebration history is keyed by id, so build 20's 26
+      // additions must never rename, drop or reorder the old shelf.
+      const original54 = [
+        'first_job', 'five_jobs', 'ten_jobs', 'twentyfive_jobs',
+        'fifty_jobs', 'hundred_jobs', 'two_hundred_jobs', //
+        'one_week_streak', 'two_week_streak', 'four_week_streak',
+        'eight_week_streak', 'twelve_week_streak',
+        'twenty_six_week_streak', 'fifty_two_week_streak', //
+        'score_80', 'score_a', 'score_95', 'score_100', //
+        'on_time_first', 'on_time_10', 'on_time_25', 'on_time_50', //
+        'diy_first', 'diy_10', 'hired_pro', //
+        'categories_3', 'categories_5', 'categories_all', //
+        'first_appliance', 'appliances_tracked', 'appliances_5',
+        'appliances_10', 'appliance_photo', 'appliance_condition',
+        'appliance_warranty', //
+        'first_expense', 'expenses_10', 'expenses_25', //
+        'spent_500', 'spent_2000', //
+        'first_scan', 'scans_5', 'scans_10', //
+        'custom_job_first', 'custom_jobs_5', 'custom_jobs_10', //
+        'first_doc', 'docs_5', 'docs_10', //
+        'first_space', //
+        'second_home', //
+        'signed_in', 'pro_member', 'lifetime_member',
+      ];
+      expect(original54.length, 54);
+      expect(badgeIdOrder.where(original54.contains).toList(), original54);
     });
 
     test('a brand-new home has earned nothing, with honest progress', () {
@@ -160,6 +190,134 @@ void main() {
       expect(life['pro_member']!.progressLabel, isNull);
       expect(life['lifetime_member']!.earned, isTrue);
       expect(life['lifetime_member']!.isProBadge, isTrue);
+    });
+
+    group('build 20 additions earn at their thresholds', () {
+      test('the long-haul job counts', () {
+        final at299 = _byId(computeBadges(const BadgeTallies(doneCount: 299)));
+        expect(at299['three_hundred_jobs']!.earned, isFalse);
+        expect(at299['three_hundred_jobs']!.progressLabel, '299 of 300');
+        final at500 = _byId(computeBadges(const BadgeTallies(doneCount: 500)));
+        expect(at500['three_hundred_jobs']!.earned, isTrue);
+        expect(at500['five_hundred_jobs']!.earned, isTrue);
+      });
+
+      test('busy day, early birds and comebacks read the new tallies', () {
+        final byId = _byId(computeBadges(const BadgeTallies(
+          maxDoneInOneDay: 2,
+          earlyCount: 9,
+          lateCount: 0,
+          skippedCount: 0,
+        )));
+        expect(byId['busy_day_3']!.earned, isFalse);
+        expect(byId['early_10']!.earned, isFalse);
+        expect(byId['early_10']!.progressLabel, '9 of 10');
+        expect(byId['comeback']!.earned, isFalse);
+        expect(byId['skipped_first']!.earned, isFalse);
+        final earned = _byId(computeBadges(const BadgeTallies(
+          maxDoneInOneDay: 3,
+          earlyCount: 25,
+          lateCount: 5,
+          skippedCount: 1,
+        )));
+        expect(earned['busy_day_3']!.earned, isTrue);
+        expect(earned['early_10']!.earned, isTrue);
+        expect(earned['early_25']!.earned, isTrue);
+        expect(earned['comeback']!.earned, isTrue);
+        expect(earned['comeback_5']!.earned, isTrue);
+        expect(earned['skipped_first']!.earned, isTrue);
+      });
+
+      test('on-time century, DIY 25 and five pros hired', () {
+        final byId = _byId(computeBadges(const BadgeTallies(
+          onTimeCount: 99,
+          diyCount: 24,
+          hiredProCount: 4,
+        )));
+        expect(byId['on_time_100']!.earned, isFalse);
+        expect(byId['diy_25']!.earned, isFalse);
+        expect(byId['hired_pro_5']!.earned, isFalse);
+        final earned = _byId(computeBadges(const BadgeTallies(
+          onTimeCount: 100,
+          diyCount: 25,
+          hiredProCount: 5,
+        )));
+        expect(earned['on_time_100']!.earned, isTrue);
+        expect(earned['diy_25']!.earned, isTrue);
+        expect(earned['hired_pro_5']!.earned, isTrue);
+      });
+
+      test('the bigger appliance shelf', () {
+        final byId = _byId(computeBadges(const BadgeTallies(
+          appliancesCount: 14,
+          appliancesWithPhoto: 4,
+          appliancesWithWarranty: 4,
+          appliancesWithCondition: 2,
+        )));
+        expect(byId['appliances_15']!.earned, isFalse);
+        expect(byId['appliance_photos_5']!.earned, isFalse);
+        expect(byId['appliance_warranties_5']!.earned, isFalse);
+        expect(byId['all_conditioned']!.earned, isFalse,
+            reason: 'fewer than 3 appliances never counts');
+        final earned = _byId(computeBadges(const BadgeTallies(
+          appliancesCount: 20,
+          appliancesWithPhoto: 5,
+          appliancesWithWarranty: 5,
+          appliancesWithCondition: 20,
+        )));
+        expect(earned['appliances_15']!.earned, isTrue);
+        expect(earned['appliances_20']!.earned, isTrue);
+        expect(earned['appliance_photos_5']!.earned, isTrue);
+        expect(earned['appliance_warranties_5']!.earned, isTrue);
+        expect(earned['all_conditioned']!.earned, isTrue);
+        final partial = _byId(computeBadges(const BadgeTallies(
+          appliancesCount: 4,
+          appliancesWithCondition: 3,
+        )));
+        expect(partial['all_conditioned']!.earned, isFalse,
+            reason: 'one unrated appliance breaks it');
+        expect(partial['all_conditioned']!.progressLabel, '3 of 4');
+      });
+
+      test('money and paper milestones', () {
+        final byId = _byId(computeBadges(const BadgeTallies(
+          expensesCount: 49,
+          totalSpent: 4999,
+          receiptsCount: 24,
+          customJobsCount: 24,
+          docsCount: 24,
+          spacesCount: 2,
+          homesCount: 2,
+        )));
+        expect(byId['expenses_50']!.earned, isFalse);
+        expect(byId['spent_5000']!.earned, isFalse);
+        expect(byId['scans_25']!.earned, isFalse);
+        expect(byId['scan_photo']!.earned, isFalse);
+        expect(byId['custom_jobs_25']!.earned, isFalse);
+        expect(byId['docs_25']!.earned, isFalse);
+        expect(byId['spaces_3']!.earned, isFalse);
+        expect(byId['third_home']!.earned, isFalse);
+        final earned = _byId(computeBadges(const BadgeTallies(
+          expensesCount: 50,
+          totalSpent: 10000,
+          receiptsCount: 25,
+          receiptsWithPhoto: 1,
+          customJobsCount: 25,
+          docsCount: 25,
+          spacesCount: 5,
+          homesCount: 3,
+        )));
+        expect(earned['expenses_50']!.earned, isTrue);
+        expect(earned['spent_5000']!.earned, isTrue);
+        expect(earned['spent_10000']!.earned, isTrue);
+        expect(earned['scans_25']!.earned, isTrue);
+        expect(earned['scan_photo']!.earned, isTrue);
+        expect(earned['custom_jobs_25']!.earned, isTrue);
+        expect(earned['docs_25']!.earned, isTrue);
+        expect(earned['spaces_3']!.earned, isTrue);
+        expect(earned['spaces_5']!.earned, isTrue);
+        expect(earned['third_home']!.earned, isTrue);
+      });
     });
   });
 

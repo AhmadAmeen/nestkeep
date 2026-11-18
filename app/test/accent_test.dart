@@ -4,11 +4,12 @@ import 'package:nestkeep/theme.dart';
 
 void main() {
   group('parseAppAccent', () {
-    test('current purple-family names map to themselves', () {
+    test('current names map to themselves', () {
       expect(parseAppAccent('purple'), AppAccent.purple);
       expect(parseAppAccent('violet'), AppAccent.violet);
       expect(parseAppAccent('plum'), AppAccent.plum);
       expect(parseAppAccent('fuchsia'), AppAccent.fuchsia);
+      expect(parseAppAccent('orange'), AppAccent.orange);
     });
 
     test('retired indigo lands on violet, its nearest neighbour', () {
@@ -17,8 +18,14 @@ void main() {
 
     test('retired mockup v6 names land on their nearest neighbours', () {
       expect(parseAppAccent('blue'), AppAccent.purple);
-      expect(parseAppAccent('orange'), AppAccent.plum);
       expect(parseAppAccent('pink'), AppAccent.plum);
+    });
+
+    test('a build-9 stored orange means the real orange again', () {
+      // Builds 11-19 mapped stored 'orange' to plum only because the
+      // colour had been removed; build 20 restored it, so the stored
+      // value resolves to the colour its owner originally picked.
+      expect(parseAppAccent('orange'), AppAccent.orange);
     });
 
     test('unknown or missing values fall back to purple', () {
@@ -28,15 +35,16 @@ void main() {
     });
   });
 
-  test('the picker offers four accents, all in the purple family', () {
+  test('the picker offers five accents: the purple family plus orange', () {
     expect(AppAccent.values, [
       AppAccent.purple,
       AppAccent.violet,
       AppAccent.plum,
       AppAccent.fuchsia,
+      AppAccent.orange,
     ]);
     expect(AppAccent.values.map((a) => a.label),
-        ['Purple', 'Violet', 'Plum', 'Fuchsia']);
+        ['Purple', 'Violet', 'Plum', 'Fuchsia', 'Orange']);
   });
 
   test('the default themes carry the purple accent', () {
@@ -51,6 +59,7 @@ void main() {
     expect(AppAccent.violet.proOnly, isTrue);
     expect(AppAccent.plum.proOnly, isTrue);
     expect(AppAccent.fuchsia.proOnly, isTrue);
+    expect(AppAccent.orange.proOnly, isTrue);
   });
 
   test('each accent resolves its light and dark primaries', () {
@@ -62,5 +71,7 @@ void main() {
     expect(AppAccent.plum.primaryFor(true), const Color(0xFFD98CFF));
     expect(AppAccent.fuchsia.primaryFor(false), const Color(0xFFC026D3));
     expect(AppAccent.fuchsia.primaryFor(true), const Color(0xFFE879F9));
+    expect(AppAccent.orange.primaryFor(false), const Color(0xFFF97316));
+    expect(AppAccent.orange.primaryFor(true), const Color(0xFFFB923C));
   });
 }

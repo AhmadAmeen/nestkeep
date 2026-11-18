@@ -156,7 +156,9 @@ void main() {
         reason: 'the trial entry really does lead with the free phase',
       );
       final display = displayPriceOf(details.first);
-      expect(display.formatted, 'Rs 8,400.00');
+      // The resolved price prints without the trailing ".00" Play
+      // adds to whole amounts (build 20).
+      expect(display.formatted, 'Rs 8,400');
       expect(display.amountMicros, 8400000000);
       expect(display.currencyCode, 'PKR');
       // 8,400,000,000 micros a year is 700 a month, in the phase's own
@@ -180,7 +182,7 @@ void main() {
       );
       final details = GooglePlayProductDetails.fromProductDetails(wrapper);
       final display = displayPriceOf(details.first);
-      expect(display.formatted, 'Rs 22,200.00');
+      expect(display.formatted, 'Rs 22,200');
       expect(display.amountMicros, 22200000000);
     });
 
@@ -211,6 +213,43 @@ void main() {
         currencyCode: 'USD',
       );
       expect(display.perMonthFormatted, '\$2.50');
+    });
+
+    test('a whole per-month equivalent prints with no decimals', () {
+      const display = DisplayPrice(
+        formatted: 'Rs 8,400',
+        amountMicros: 8400000000,
+        currencyCode: 'PKR',
+      );
+      // intl's PKR pattern carries no space after the symbol (the
+      // fractional form is 'Rs700.00'); the whole form drops the
+      // decimals and nothing else.
+      expect(display.perMonthFormatted, 'Rs700');
+    });
+  });
+
+  group('formatDisplayPrice', () {
+    test('strips a trailing zero decimal part', () {
+      expect(formatDisplayPrice('Rs 8,300.00'), 'Rs 8,300');
+      expect(formatDisplayPrice('\$30.00'), '\$30');
+      expect(formatDisplayPrice('Rs 22,200.00'), 'Rs 22,200');
+    });
+
+    test('strips a comma decimal separator, suffix currency included', () {
+      expect(formatDisplayPrice('8.300,00 €'), '8.300 €');
+      expect(formatDisplayPrice('29,00 €'), '29 €');
+    });
+
+    test('leaves real fractional amounts untouched', () {
+      expect(formatDisplayPrice('\$29.99'), '\$29.99');
+      expect(formatDisplayPrice('Rs 100.50'), 'Rs 100.50');
+      expect(formatDisplayPrice('\$4.99'), '\$4.99');
+    });
+
+    test('leaves prices with no decimal part untouched', () {
+      expect(formatDisplayPrice('Rs 8,300'), 'Rs 8,300');
+      expect(formatDisplayPrice('Free'), 'Free');
+      expect(formatDisplayPrice('¥1,000'), '¥1,000');
     });
   });
 }

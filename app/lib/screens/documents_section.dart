@@ -277,15 +277,22 @@ class _DocumentsSectionState extends State<DocumentsSection> {
     final hasImage = file.existsSync();
     final space = _spaceName(doc.spaceId);
     return NkCard(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => DocPhotoView(
-            state: state,
-            doc: doc,
-            onOpenPaywall: widget.onOpenPaywall,
+      onTap: () async {
+        // The photo view pops with 'deleted' when the document is
+        // deleted from it; confirm here on the list (build 20).
+        final result = await Navigator.of(context).push<String>(
+          MaterialPageRoute(
+            builder: (_) => DocPhotoView(
+              state: state,
+              doc: doc,
+              onOpenPaywall: widget.onOpenPaywall,
+            ),
           ),
-        ),
-      ),
+        );
+        if (result == 'deleted' && context.mounted) {
+          showTicker(context, 'Document deleted');
+        }
+      },
       padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -349,6 +356,7 @@ class _DocumentsSectionState extends State<DocumentsSection> {
     final created = await createHomeSpace(context, state);
     if (created != null && mounted) {
       setState(() => _filter = created.id!);
+      showTicker(context, 'Space added');
     }
   }
 
@@ -396,6 +404,7 @@ class _DocumentsSectionState extends State<DocumentsSection> {
         ),
       );
       await state.reload();
+      if (mounted) showTicker(context, 'Space updated');
     } else if (action == 'delete') {
       final ok = await showDialog<bool>(
         context: context,
@@ -423,6 +432,7 @@ class _DocumentsSectionState extends State<DocumentsSection> {
       if (!mounted) return;
       if (_filter == space.id) setState(() => _filter = _filterAll);
       await state.reload();
+      if (mounted) showTicker(context, 'Space deleted');
     }
   }
 
@@ -506,6 +516,7 @@ class _DocumentsSectionState extends State<DocumentsSection> {
       setState(() => _filter = _filterWholeHome);
     }
     await state.reload();
+    if (mounted) showTicker(context, 'Document added');
   }
 }
 
@@ -571,7 +582,10 @@ class _DocPhotoViewState extends State<DocPhotoView> {
       ),
     );
     await state.reload();
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {});
+      showTicker(context, 'Document updated');
+    }
   }
 
   Future<void> _delete() async {
@@ -602,7 +616,9 @@ class _DocPhotoViewState extends State<DocPhotoView> {
       await File(doc.filePath).delete();
     } catch (_) {}
     await state.reload();
-    if (mounted) Navigator.of(context).pop();
+    // Pop with the outcome so the documents list confirms the delete
+    // once navigation has completed (build 20).
+    if (mounted) Navigator.of(context).pop('deleted');
   }
 
   @override

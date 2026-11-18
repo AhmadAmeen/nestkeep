@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
+import '../models.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import 'note_form.dart';
@@ -13,6 +14,24 @@ class NotesScreen extends StatelessWidget {
 
   const NotesScreen({super.key, required this.state});
 
+  /// Open the form and confirm its outcome here on the list, once
+  /// navigation has completed (build 20 tickers).
+  Future<void> _openForm(BuildContext context, {HomeNote? existing}) async {
+    final result = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => NoteFormScreen(state: state, existing: existing),
+      ),
+    );
+    if (!context.mounted || result == null) return;
+    final message = switch (result) {
+      'added' => 'Note added',
+      'updated' => 'Note updated',
+      'deleted' => 'Note deleted',
+      _ => null,
+    };
+    if (message != null) showTicker(context, message);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -22,9 +41,7 @@ class NotesScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.add),
             tooltip: 'Add a note',
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => NoteFormScreen(state: state),
-            )),
+            onPressed: () => _openForm(context),
           ),
         ],
       ),
@@ -40,9 +57,7 @@ class NotesScreen extends StatelessWidget {
             ),
           for (final n in state.homeNotes) ...[
             NkCard(
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => NoteFormScreen(state: state, existing: n),
-              )),
+              onTap: () => _openForm(context, existing: n),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               child: Row(
                 children: [

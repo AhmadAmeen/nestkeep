@@ -259,6 +259,7 @@ class _PlanScreenState extends State<PlanScreen> {
     await state.reload();
     await Reminders.reschedule(state.tasks, state.appliances);
     SyncService.syncNow();
+    if (context.mounted) showTicker(context, 'Task added');
   }
 }
 

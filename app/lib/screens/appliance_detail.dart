@@ -126,13 +126,15 @@ class _ApplianceDetailScreenState extends State<ApplianceDetailScreen> {
       // Reload so the My Home card picks up the new first photo.
       await state.reload();
       await _loadFiles();
+      if (mounted) showTicker(context, 'Attachment added');
     } catch (_) {
       // A failed copy just leaves the attachments as they were.
     }
   }
 
-  void _openImage(String path, {ApplianceFile? file}) {
-    Navigator.of(context).push(MaterialPageRoute(
+  Future<void> _openImage(String path, {ApplianceFile? file}) async {
+    var deleted = false;
+    await Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => _FullImage(
         path: path,
         onDelete: file == null
@@ -145,21 +147,35 @@ class _ApplianceDetailScreenState extends State<ApplianceDetailScreen> {
                 // Reload so the My Home card drops the removed photo.
                 await state.reload();
                 await _loadFiles();
+                deleted = true;
               },
       ),
     ));
+    if (deleted && mounted) showTicker(context, 'Attachment deleted');
   }
 
   Future<void> _edit() async {
-    await Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => ApplianceFormScreen(
-        state: state,
-        existing: _current,
-        onOpenPaywall: widget.onOpenPaywall,
+    final result = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => ApplianceFormScreen(
+          state: state,
+          existing: _current,
+          onOpenPaywall: widget.onOpenPaywall,
+        ),
       ),
-    ));
+    );
     await _loadFiles();
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    if (result == 'deleted') {
+      // The appliance is gone: this detail page has nothing left to
+      // show. Pop too, handing the result up so the list underneath
+      // confirms the delete (build 20 — deleting used to strand the
+      // user here on the dead appliance's page).
+      Navigator.of(context).pop('deleted');
+      return;
+    }
+    setState(() {});
+    if (result == 'updated') showTicker(context, 'Appliance updated');
   }
 
   @override

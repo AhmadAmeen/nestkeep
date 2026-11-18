@@ -27,15 +27,20 @@ class AppliancesScreen extends StatelessWidget {
     required this.onOpenPaywall,
   });
 
-  void _addAppliance(BuildContext context) {
+  Future<void> _addAppliance(BuildContext context) async {
     if (!state.isPro && state.appliances.length >= freeApplianceLimit) {
       onOpenPaywall();
       return;
     }
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) =>
-          ApplianceFormScreen(state: state, onOpenPaywall: onOpenPaywall),
-    ));
+    final result = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) =>
+            ApplianceFormScreen(state: state, onOpenPaywall: onOpenPaywall),
+      ),
+    );
+    if (result == 'added' && context.mounted) {
+      showTicker(context, 'Appliance added');
+    }
   }
 
   @override
@@ -234,13 +239,23 @@ class ApplianceCard extends StatelessWidget {
     final hasDate = appliance.purchaseDate != null;
     final status = lifeStatus(appliance, now);
     return NkCard(
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => ApplianceDetailScreen(
-          state: state,
-          appliance: appliance,
-          onOpenPaywall: onOpenPaywall,
-        ),
-      )),
+      onTap: () async {
+        // The detail screen pops itself with 'deleted' when the
+        // appliance is deleted from its edit form, unwinding all the
+        // way back here (build 20) — confirm on the list.
+        final result = await Navigator.of(context).push<String>(
+          MaterialPageRoute(
+            builder: (_) => ApplianceDetailScreen(
+              state: state,
+              appliance: appliance,
+              onOpenPaywall: onOpenPaywall,
+            ),
+          ),
+        );
+        if (result == 'deleted' && context.mounted) {
+          showTicker(context, 'Appliance deleted');
+        }
+      },
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

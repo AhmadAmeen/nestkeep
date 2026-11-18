@@ -22,6 +22,59 @@ import 'theme.dart';
 import 'widgets/avatar_menu.dart';
 import 'widgets/badge_celebration.dart';
 
+/// Watches the app's routes so the Shell knows when it is back on
+/// top after a pushed screen pops (one of the nudges that re-offers
+/// a queued badge celebration; see _ShellState._maybeCelebrate).
+final RouteObserver<PageRoute<dynamic>> appRouteObserver =
+    RouteObserver<PageRoute<dynamic>>();
+
+/// Tracks the route on top of the root navigator for the badge
+/// celebration presenter (build 20). The original bug: a save flow
+/// reloaded state — queueing a celebration — and then popped its own
+/// route; a celebration dialog pushed in between was what that pop
+/// closed, stranding the user on the form. So celebrations are only
+/// presented once navigation has fully settled: the route on top is
+/// a page, its transition has finished, and no navigation event has
+/// happened since the offer was made (every event bumps [serial]).
+/// Anything less and the offer waits for the next nudge — a pop, a
+/// push, or the next state change — so the celebration is never
+/// lost, just never early.
+class CelebrationObserver extends NavigatorObserver {
+  Route<dynamic>? topRoute;
+  int serial = 0;
+  VoidCallback? onRouteSettled;
+
+  void _track(Route<dynamic>? route) {
+    topRoute = route;
+    serial++;
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => onRouteSettled?.call());
+  }
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _track(route);
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _track(previousRoute);
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) =>
+      _track(newRoute);
+
+  /// True when a celebration may go on screen: a page (not a dialog
+  /// or sheet) is on top and its transition has finished.
+  bool get canPresent {
+    final route = topRoute;
+    if (route is! PageRoute) return false;
+    final status = route.animation?.status;
+    return status == null || status == AnimationStatus.completed;
+  }
+}
+
+final celebrationObserver = CelebrationObserver();
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
@@ -89,6 +142,7 @@ class _NestKeepAppState extends State<NestKeepApp> {
           theme: nkLightTheme(state.accent),
           darkTheme: nkDarkTheme(state.accent),
           themeMode: themeMode,
+          navigatorObservers: [appRouteObserver, celebrationObserver],
           home: _home(),
         );
       },
@@ -185,7 +239,7 @@ class Shell extends StatefulWidget {
   State<Shell> createState() => _ShellState();
 }
 
-class _ShellState extends State<Shell> {
+class _ShellState extends State<Shell> with RouteAware {
   int _tab = 0;
   bool _celebrationShowing = false;
 
@@ -195,23 +249,56 @@ class _ShellState extends State<Shell> {
   void initState() {
     super.initState();
     state.addListener(_maybeCelebrate);
+    celebrationObserver.onRouteSettled = _maybeCelebrate;
     // Catch anything earned before the Shell existed (e.g. during
     // onboarding) on the first frame.
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeCelebrate());
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) appRouteObserver.subscribe(this, route);
+  }
+
+  @override
   void dispose() {
+    appRouteObserver.unsubscribe(this);
+    if (celebrationObserver.onRouteSettled == _maybeCelebrate) {
+      celebrationObserver.onRouteSettled = null;
+    }
     state.removeListener(_maybeCelebrate);
     super.dispose();
   }
 
-  /// Badge celebrations drain one at a time. State reloads land here
-  /// via the listener; the post-frame callback keeps the dialog out of
-  /// the build phase, and the flag keeps celebrations from stacking.
+  /// A pushed screen popped and the Shell is on top again: one more
+  /// nudge to offer any celebration that queued while it was covered.
+  @override
+  void didPopNext() => _maybeCelebrate();
+
+  /// Badge celebrations drain one at a time. Offers arrive from the
+  /// state listener (a reload queued one), from the route observer
+  /// (navigation settled), and from didPopNext. The offer is only
+  /// taken up once navigation has fully settled — see
+  /// [CelebrationObserver] — so a celebration can never be pushed
+  /// in the middle of a save flow's own navigation, where the flow's
+  /// next pop would close the dialog instead of its route (the
+  /// build-20 appliance-save bug). An unsettled offer is not lost:
+  /// the next nudge re-offers it.
   void _maybeCelebrate() {
     if (_celebrationShowing || state.pendingCelebrations.isEmpty) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) => _showCelebration());
+    final serial = celebrationObserver.serial;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          _celebrationShowing ||
+          state.pendingCelebrations.isEmpty) {
+        return;
+      }
+      if (celebrationObserver.serial != serial) return;
+      if (!celebrationObserver.canPresent) return;
+      _showCelebration();
+    });
   }
 
   Future<void> _showCelebration() async {
@@ -274,8 +361,6 @@ class _ShellState extends State<Shell> {
         appBar: AppBar(title: const Text('Settings')),
         body: SettingsScreen(
           state: state,
-          themeMode: widget.themeMode,
-          onThemeChanged: widget.onThemeChanged,
           onOpenPaywall: _openPaywall,
           onShowIntro: _openIntro,
         ),
@@ -322,6 +407,8 @@ class _ShellState extends State<Shell> {
       ),
       ProfileScreen(
         state: state,
+        themeMode: widget.themeMode,
+        onThemeChanged: widget.onThemeChanged,
         onOpenPaywall: _openPaywall,
         onOpenSettings: _openSettings,
         onAvatarTap: _onAvatarTap,

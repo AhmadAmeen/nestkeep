@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
@@ -5,6 +7,7 @@ import '../models.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import '../widgets/avatar_menu.dart';
+import '../widgets/home_photo.dart';
 import 'appliances.dart';
 import 'belongings.dart';
 import 'contractors.dart';
@@ -56,8 +59,13 @@ class MyHomeScreen extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        NkCard(
-          child: Row(
+        // The home's own photo (build 20, free, local only) rides on
+        // top of the summary card as a banner when one is set; with
+        // no photo the card is exactly as it was. Tapping the banner
+        // replaces or removes the photo.
+        Builder(builder: (context) {
+          final photoPath = state.homePhotoPath(home.id!);
+          final summaryRow = Row(
             children: [
               CircleAvatar(
                 radius: 24,
@@ -85,8 +93,35 @@ class MyHomeScreen extends StatelessWidget {
                 ),
               ),
             ],
-          ),
-        ),
+          );
+          if (photoPath == null) return NkCard(child: summaryRow);
+          return NkCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                GestureDetector(
+                  onTap: () => showHomePhotoActions(context, state, home.id!),
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(20)),
+                    child: Image.file(
+                      File(photoPath),
+                      height: 130,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: summaryRow,
+                ),
+              ],
+            ),
+          );
+        }),
         const SizedBox(height: 12),
         // The stats strip: three real counts, straight from state.
         NkCard(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
+import '../models.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import 'belonging_form.dart';
@@ -13,6 +14,24 @@ class BelongingsScreen extends StatelessWidget {
 
   const BelongingsScreen({super.key, required this.state});
 
+  /// Open the form and confirm its outcome here on the list, once
+  /// navigation has completed (build 20 tickers).
+  Future<void> _openForm(BuildContext context, {Belonging? existing}) async {
+    final result = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => BelongingFormScreen(state: state, existing: existing),
+      ),
+    );
+    if (!context.mounted || result == null) return;
+    final message = switch (result) {
+      'added' => 'Belonging added',
+      'updated' => 'Belonging updated',
+      'deleted' => 'Belonging deleted',
+      _ => null,
+    };
+    if (message != null) showTicker(context, message);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -22,9 +41,7 @@ class BelongingsScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.add),
             tooltip: 'Add a belonging',
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => BelongingFormScreen(state: state),
-            )),
+            onPressed: () => _openForm(context),
           ),
         ],
       ),
@@ -68,9 +85,7 @@ class BelongingsScreen extends StatelessWidget {
             ),
           for (final b in state.belongings) ...[
             NkCard(
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => BelongingFormScreen(state: state, existing: b),
-              )),
+              onTap: () => _openForm(context, existing: b),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               child: Row(
                 children: [

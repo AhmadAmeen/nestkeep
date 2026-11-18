@@ -102,6 +102,116 @@ class HomeProfile {
       );
 }
 
+/// The onboarding wizard's answer options, shared verbatim with the
+/// Home details edit form (build 20) so a home's facts can be changed
+/// later using exactly the choices the wizard offered — never a
+/// second, invented set.
+const homeTypeOptions = [
+  ('house', 'House'),
+  ('townhouse', 'Townhouse'),
+  ('condo', 'Condo'),
+  ('apartment', 'Apartment'),
+];
+
+const heatingOptions = [
+  ('forced_air', 'Forced air furnace'),
+  ('heat_pump', 'Heat pump'),
+  ('boiler', 'Boiler / radiators'),
+  ('none', 'Other / none'),
+];
+
+const coolingOptions = [
+  ('central', 'Central AC'),
+  ('window', 'Window units'),
+  ('none', 'No AC'),
+];
+
+const climateOptions = [
+  ('cold', 'Freezing cold'),
+  ('mild', 'Mild'),
+  ('hot', 'Rarely cold'),
+];
+
+/// The wizard's "What does it have?" toggles, in wizard order: the
+/// flag key (matching [HomeProfile.flags]) and the label shown.
+const homeFeatureOptions = [
+  ('basement', 'Basement / crawlspace'),
+  ('garage', 'Garage'),
+  ('deck', 'Deck / patio'),
+  ('sprinklers', 'Sprinkler system'),
+  ('softener', 'Water softener'),
+  ('chimney', 'Fireplace / chimney'),
+  ('pool', 'Pool / hot tub'),
+  ('septic', 'Septic system'),
+  ('well', 'Well water'),
+  ('solar', 'Solar panels'),
+  ('generator', 'Standby generator'),
+  ('ev', 'EV charger'),
+];
+
+extension HomeProfileOps on HomeProfile {
+  /// One feature flag by its [homeFeatureOptions] key.
+  bool feature(String key) => switch (key) {
+        'basement' => hasBasement,
+        'garage' => hasGarage,
+        'deck' => hasDeck,
+        'sprinklers' => hasSprinklers,
+        'softener' => hasSoftener,
+        'chimney' => hasChimney,
+        'pool' => hasPool,
+        'septic' => hasSeptic,
+        'well' => hasWell,
+        'solar' => hasSolar,
+        'generator' => hasGenerator,
+        'ev' => hasEvCharger,
+        _ => false,
+      };
+
+  HomeProfile withFeature(String key, bool value) => HomeProfile(
+        homeType: homeType,
+        heating: heating,
+        cooling: cooling,
+        hasBasement: key == 'basement' ? value : hasBasement,
+        hasGarage: key == 'garage' ? value : hasGarage,
+        hasDeck: key == 'deck' ? value : hasDeck,
+        hasSprinklers: key == 'sprinklers' ? value : hasSprinklers,
+        hasSoftener: key == 'softener' ? value : hasSoftener,
+        hasChimney: key == 'chimney' ? value : hasChimney,
+        hasPool: key == 'pool' ? value : hasPool,
+        hasSeptic: key == 'septic' ? value : hasSeptic,
+        hasWell: key == 'well' ? value : hasWell,
+        hasSolar: key == 'solar' ? value : hasSolar,
+        hasGenerator: key == 'generator' ? value : hasGenerator,
+        hasEvCharger: key == 'ev' ? value : hasEvCharger,
+        climate: climate,
+      );
+
+  HomeProfile copyWith({
+    String? homeType,
+    String? heating,
+    String? cooling,
+    String? climate,
+  }) =>
+      HomeProfile(
+        homeType: homeType ?? this.homeType,
+        heating: heating ?? this.heating,
+        cooling: cooling ?? this.cooling,
+        hasBasement: hasBasement,
+        hasGarage: hasGarage,
+        hasDeck: hasDeck,
+        hasSprinklers: hasSprinklers,
+        hasSoftener: hasSoftener,
+        hasChimney: hasChimney,
+        hasPool: hasPool,
+        hasSeptic: hasSeptic,
+        hasWell: hasWell,
+        hasSolar: hasSolar,
+        hasGenerator: hasGenerator,
+        hasEvCharger: hasEvCharger,
+        climate: climate ?? this.climate,
+      );
+}
+
 /// The profile is stored per home so the plan can explain itself later
 /// ("in your plan because...") and show what was left out.
 Future<void> saveProfile(int homeId, HomeProfile profile) =>

@@ -44,12 +44,18 @@ class NkCard extends StatelessWidget {
     } else {
       inner = ClipRRect(
         borderRadius: BorderRadius.circular(20),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(width: 5, color: accentLeft),
-            Expanded(child: card),
-          ],
+        // IntrinsicHeight: the stretch row otherwise demands an
+        // infinite height inside a scrollable's unbounded cross
+        // axis (a debug-mode layout assertion on Today, Scan and
+        // the paywall, found by the build-20 flow tests).
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(width: 5, color: accentLeft),
+              Expanded(child: card),
+            ],
+          ),
         ),
       );
     }
@@ -496,7 +502,11 @@ IconData categoryIcon(String category) {
 Color categoryColor(String category) {
   switch (category) {
     case 'HVAC':
-      return const Color(0xFFEF7D1A);
+      // Deepened in build 20: the old #EF7D1A was nearly identical to
+      // the new Orange app accent, so HVAC tiles read as UI chrome.
+      // This stays warm orange family but clearly darker than the
+      // accent in both light (#F97316) and dark (#FB923C) modes.
+      return const Color(0xFFD9480F);
     case 'Plumbing':
       // Indigo, in the purple accent family (was the old royal blue
       // #2456D6 before build 11 unified the palette).
@@ -533,6 +543,23 @@ String dueLabel(TaskInstance t, DateTime now) {
 String money(double v) {
   if (v == v.roundToDouble()) return '\$${v.toStringAsFixed(0)}';
   return '\$${v.toStringAsFixed(2)}';
+}
+
+/// The confirmation ticker (build 20): one short line after a
+/// successful add, edit or delete — "Appliance added", "Expense
+/// updated", "Contractor deleted". One helper so every flow words it
+/// the same way ("Entity added / updated / deleted"), shows it on
+/// the screen the user lands on after navigation completes, and keeps
+/// it brief. Any ticker already up is replaced, never stacked.
+void showTicker(BuildContext context, String message) {
+  final messenger = ScaffoldMessenger.of(context);
+  messenger.hideCurrentSnackBar();
+  messenger.showSnackBar(
+    SnackBar(
+      content: Text(message),
+      duration: const Duration(seconds: 3),
+    ),
+  );
 }
 
 /// Tips rotate deterministically by ISO week so every user sees the same

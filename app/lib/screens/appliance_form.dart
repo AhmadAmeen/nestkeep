@@ -171,7 +171,12 @@ class _ApplianceFormScreenState extends State<ApplianceFormScreen> {
     await widget.state.reload();
     await Reminders.reschedule(widget.state.tasks, widget.state.appliances);
     SyncService.syncNow();
-    if (mounted) Navigator.of(context).pop();
+    // Pop with the outcome so the screen underneath can confirm it
+    // with a ticker once navigation has completed (build 20).
+    if (mounted) {
+      Navigator.of(context)
+          .pop(widget.existing == null ? 'added' : 'updated');
+    }
   }
 
   Future<void> _delete() async {
@@ -180,7 +185,7 @@ class _ApplianceFormScreenState extends State<ApplianceFormScreen> {
     await widget.state.reload();
     await Reminders.reschedule(widget.state.tasks, widget.state.appliances);
     SyncService.syncNow();
-    if (mounted) Navigator.of(context).pop();
+    if (mounted) Navigator.of(context).pop('deleted');
   }
 
   @override

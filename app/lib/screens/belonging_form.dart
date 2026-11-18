@@ -50,7 +50,12 @@ class _BelongingFormScreenState extends State<BelongingFormScreen> {
     }
     await widget.state.reload();
     SyncService.syncNow();
-    if (mounted) Navigator.of(context).pop();
+    // Pop with the outcome so the list underneath can confirm it
+    // with a ticker once navigation has completed (build 20).
+    if (mounted) {
+      Navigator.of(context)
+          .pop(widget.existing == null ? 'added' : 'updated');
+    }
   }
 
   Future<void> _delete() async {
@@ -58,7 +63,7 @@ class _BelongingFormScreenState extends State<BelongingFormScreen> {
     await AppDb.deleteBelonging(widget.existing!.id!);
     await widget.state.reload();
     SyncService.syncNow();
-    if (mounted) Navigator.of(context).pop();
+    if (mounted) Navigator.of(context).pop('deleted');
   }
 
   @override

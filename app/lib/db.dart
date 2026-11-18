@@ -218,6 +218,11 @@ class AppDb {
     return db.insert('homes', map);
   }
 
+  static Future<void> updateHome(Home h) async {
+    final db = await open();
+    await db.update('homes', h.toMap(), where: 'id = ?', whereArgs: [h.id]);
+  }
+
   static Future<List<Home>> homes() async {
     final db = await open();
     final rows = await db.query('homes', orderBy: 'id');

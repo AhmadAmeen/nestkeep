@@ -213,12 +213,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         _headline('What kind of home?'),
                         _chips(
                           value: _type,
-                          options: const [
-                            ('house', 'House'),
-                            ('townhouse', 'Townhouse'),
-                            ('condo', 'Condo'),
-                            ('apartment', 'Apartment'),
-                          ],
+                          options: homeTypeOptions,
                           onChanged: (v) => setState(() => _type = v),
                         ),
                       ]),
@@ -227,23 +222,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         _question('How is it heated?'),
                         _chips(
                           value: _heating,
-                          options: const [
-                            ('forced_air', 'Forced air furnace'),
-                            ('heat_pump', 'Heat pump'),
-                            ('boiler', 'Boiler / radiators'),
-                            ('none', 'Other / none'),
-                          ],
+                          options: heatingOptions,
                           onChanged: (v) => setState(() => _heating = v),
                         ),
                         const SizedBox(height: 22),
                         _question('How is it cooled?'),
                         _chips(
                           value: _cooling,
-                          options: const [
-                            ('central', 'Central AC'),
-                            ('window', 'Window units'),
-                            ('none', 'No AC'),
-                          ],
+                          options: coolingOptions,
                           onChanged: (v) => setState(() => _cooling = v),
                         ),
                       ]),
@@ -251,11 +237,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         _headline('Winters where you live?'),
                         _chips(
                           value: _climate,
-                          options: const [
-                            ('cold', 'Freezing cold'),
-                            ('mild', 'Mild'),
-                            ('hot', 'Rarely cold'),
-                          ],
+                          options: climateOptions,
                           onChanged: (v) => setState(() => _climate = v),
                         ),
                       ]),

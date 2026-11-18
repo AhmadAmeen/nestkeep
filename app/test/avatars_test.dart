@@ -16,6 +16,16 @@ void main() {
       expect(avatarById('dragon').label, 'Dragon');
       expect(avatarById('dragon').proOnly, isTrue);
     });
+
+    test('the custom photo avatar resolves outside the catalogue', () {
+      // Build 20: id 'custom' is the user's own photo. It is not one
+      // of the 12 catalogue entries (the picker adds it as a last
+      // tile), and it is Pro-only.
+      expect(avatarById('custom').id, 'custom');
+      expect(avatarById('custom').label, 'Yours');
+      expect(avatarById('custom').proOnly, isTrue);
+      expect(avatarCatalogue.any((a) => a.id == 'custom'), isFalse);
+    });
   });
 
   group('catalogue', () {

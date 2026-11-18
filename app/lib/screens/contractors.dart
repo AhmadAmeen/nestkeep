@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
+import '../models.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import 'contractor_form.dart';
@@ -13,6 +14,24 @@ class ContractorsScreen extends StatelessWidget {
 
   const ContractorsScreen({super.key, required this.state});
 
+  /// Open the form and confirm its outcome here on the list, once
+  /// navigation has completed (build 20 tickers).
+  Future<void> _openForm(BuildContext context, {Contractor? existing}) async {
+    final result = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => ContractorFormScreen(state: state, existing: existing),
+      ),
+    );
+    if (!context.mounted || result == null) return;
+    final message = switch (result) {
+      'added' => 'Contractor added',
+      'updated' => 'Contractor updated',
+      'deleted' => 'Contractor deleted',
+      _ => null,
+    };
+    if (message != null) showTicker(context, message);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -22,9 +41,7 @@ class ContractorsScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.add),
             tooltip: 'Add a pro',
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => ContractorFormScreen(state: state),
-            )),
+            onPressed: () => _openForm(context),
           ),
         ],
       ),
@@ -40,9 +57,7 @@ class ContractorsScreen extends StatelessWidget {
             ),
           for (final c in state.contractors) ...[
             NkCard(
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => ContractorFormScreen(state: state, existing: c),
-              )),
+              onTap: () => _openForm(context, existing: c),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               child: Row(
                 children: [

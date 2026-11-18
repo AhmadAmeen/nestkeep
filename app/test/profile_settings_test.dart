@@ -30,14 +30,23 @@ Future<void> _pumpProfile(
   WidgetTester tester,
   AppState state, {
   VoidCallback? onOpenSettings,
+  VoidCallback? onOpenPaywall,
 }) async {
+  // A tall viewport: Profile grew in build 20 (Appearance moved in),
+  // and rows left at the very edge of the default surface take taps
+  // on their borders instead of their centres.
+  tester.view.physicalSize = const Size(1080, 2800);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.reset);
   await tester.pumpWidget(
     MaterialApp(
       theme: nkLightTheme(),
       home: Scaffold(
         body: ProfileScreen(
           state: state,
-          onOpenPaywall: () {},
+          themeMode: ThemeMode.system,
+          onThemeChanged: (_) {},
+          onOpenPaywall: onOpenPaywall ?? () {},
           onAddHome: () {},
           onOpenSettings: onOpenSettings ?? () {},
         ),
@@ -55,8 +64,6 @@ Future<void> _pumpSettings(WidgetTester tester, AppState state,
         appBar: AppBar(title: const Text('Settings')),
         body: SettingsScreen(
           state: state,
-          themeMode: ThemeMode.system,
-          onThemeChanged: (_) {},
           onOpenPaywall: onOpenPaywall ?? () {},
         ),
       ),
@@ -112,7 +119,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('First job done'), findsNothing);
-    expect(find.text('0 earned'), findsOneWidget);
+    expect(find.text('0 earned out of 80'), findsOneWidget);
   });
 
   testWidgets('the Settings row on Profile opens Settings', (tester) async {
@@ -128,23 +135,32 @@ void main() {
     expect(opened, isTrue);
   });
 
-  testWidgets('Settings carries appearance, colours, data and about', (
-    tester,
-  ) async {
+  testWidgets('Settings carries data and about only', (tester) async {
     final state = AppState();
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: nkLightTheme(),
-        home: Scaffold(
-          appBar: AppBar(title: const Text('Settings')),
-          body: SettingsScreen(
-            state: state,
-            themeMode: ThemeMode.system,
-            onThemeChanged: (_) {},
-            onOpenPaywall: () {},
-          ),
-        ),
-      ),
+    await _pumpSettings(tester, state);
+    // Appearance moved to Profile in build 20: no theme or colour
+    // controls remain here.
+    expect(find.text('Appearance'), findsNothing);
+    expect(find.text('App colour'), findsNothing);
+    expect(find.text('Violet'), findsNothing);
+    expect(find.text('Data'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Export backup'), 120);
+    expect(find.text('Export backup'), findsOneWidget);
+    expect(find.text('Privacy policy'), findsOneWidget);
+    expect(find.text('Delete account'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Version'), 120);
+    expect(find.text('Version'), findsOneWidget);
+    expect(find.text('1.5.2'), findsOneWidget);
+    expect(find.textContaining('NestKeep 1.5.2'), findsOneWidget);
+  });
+
+  testWidgets('Profile carries the appearance section', (tester) async {
+    final state = AppState();
+    await _pumpProfile(tester, state);
+    await tester.scrollUntilVisible(
+      find.text('App colour'),
+      120,
+      scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('Appearance'), findsOneWidget);
     expect(find.text('App colour'), findsOneWidget);
@@ -152,15 +168,7 @@ void main() {
     expect(find.text('Violet'), findsOneWidget);
     expect(find.text('Plum'), findsOneWidget);
     expect(find.text('Fuchsia'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('Export backup'), 120);
-    expect(find.text('Export backup'), findsOneWidget);
-    expect(find.text('Privacy policy'), findsOneWidget);
-    expect(find.text('Delete account'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('Version'), 120);
-    expect(find.text('Version'), findsOneWidget);
-    expect(find.text('1.5.1'), findsOneWidget);
-    expect(find.textContaining('NestKeep 1.5.1'), findsOneWidget);
-    // Nothing settings-like is left duplicated on Profile.
+    expect(find.text('Orange'), findsOneWidget);
   });
 
   testWidgets('the avatar menu opens with its rows and the picker', (
@@ -243,13 +251,22 @@ void main() {
   testWidgets('custom colours are locked for free users', (tester) async {
     var paywallOpened = false;
     final state = AppState();
-    await _pumpSettings(tester, state,
+    await _pumpProfile(tester, state,
         onOpenPaywall: () => paywallOpened = true);
-    // All three custom colours carry the lock and the PRO caption;
-    // Purple, the free default, never does.
-    expect(find.byIcon(Icons.lock), findsNWidgets(3));
-    expect(find.text('PRO'), findsNWidgets(3));
+    await tester.scrollUntilVisible(
+      find.text('App colour'),
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
+    // All four custom colours carry the lock and the PRO caption;
+    // Purple, the free default, never does. (The collapsed avatar
+    // grid shows only free avatars, so it adds no locks.)
+    expect(find.byIcon(Icons.lock), findsNWidgets(4));
+    expect(find.text('PRO'), findsNWidgets(4));
     await tester.tap(find.text('Violet'));
+    expect(paywallOpened, isTrue);
+    expect(state.accent, AppAccent.purple);
+    await tester.tap(find.text('Orange'));
     expect(paywallOpened, isTrue);
     expect(state.accent, AppAccent.purple);
   });
@@ -258,10 +275,15 @@ void main() {
       (tester) async {
     var paywallOpened = false;
     final state = AppState()..accent = AppAccent.plum;
-    await _pumpSettings(tester, state,
+    await _pumpProfile(tester, state,
         onOpenPaywall: () => paywallOpened = true);
-    // Plum is in use, so only the other two custom colours are locked.
-    expect(find.byIcon(Icons.lock), findsNWidgets(2));
+    await tester.scrollUntilVisible(
+      find.text('App colour'),
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
+    // Plum is in use, so only the other three custom colours lock.
+    expect(find.byIcon(Icons.lock), findsNWidgets(3));
     // Picking a different custom colour routes to the paywall instead.
     await tester.tap(find.text('Fuchsia'));
     expect(paywallOpened, isTrue);
@@ -296,8 +318,14 @@ void main() {
     final state = AppState()
       ..entitlement =
           const Entitlement(isPro: true, source: EntitlementSource.yearly);
-    await _pumpSettings(tester, state);
+    await _pumpProfile(tester, state);
+    await tester.scrollUntilVisible(
+      find.text('App colour'),
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.byIcon(Icons.lock), findsNothing);
-    expect(find.text('PRO'), findsNWidgets(3));
+    // Four colour captions plus the plan card's PRO chip.
+    expect(find.text('PRO'), findsNWidgets(5));
   });
 }

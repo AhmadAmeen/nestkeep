@@ -49,6 +49,21 @@ PricePhase? pickBasePhase(List<PricePhase> phases) {
   return positive.last;
 }
 
+/// Play's formatter always prints a decimal part for decimal
+/// currencies, so a whole amount arrives as "Rs 8,300.00" (or
+/// "8.300,00 €" in suffix locales). The trailing ".00" reads as noise
+/// (build 20): strip a zero decimal part — exactly two zeros after a
+/// '.' or ',' separator, followed only by a possible currency suffix —
+/// and leave any real fractional part ("$29.99", "Rs 100.50")
+/// untouched. Exactly two zeros, so a zero-decimal currency's
+/// thousands separator ("¥1,000") is never mistaken for decimals.
+String formatDisplayPrice(String formatted) {
+  final trimmed = formatted.trim();
+  final m = RegExp(r'[.,]0{2}(?=\D*$)').firstMatch(trimmed);
+  if (m == null) return formatted;
+  return (trimmed.substring(0, m.start) + trimmed.substring(m.end)).trim();
+}
+
 /// A price ready to print: Play's own formatting for the amount, plus
 /// the raw amount and currency for derived figures like a per-month
 /// equivalent.
@@ -65,13 +80,19 @@ class DisplayPrice {
 
   /// The per-month equivalent of a yearly price, formatted in the
   /// price's own currency; null when the amount or currency is unknown
-  /// (callers then simply omit the clause).
+  /// (callers then simply omit the clause). A whole amount prints with
+  /// no decimal part ("Rs 700", not "Rs 700.00").
   String? get perMonthFormatted {
     final micros = amountMicros;
     final code = currencyCode;
     if (micros == null || code == null) return null;
-    return NumberFormat.simpleCurrency(name: code)
-        .format(micros / 12 / 1000000);
+    final value = micros / 12 / 1000000;
+    final format = NumberFormat.simpleCurrency(name: code);
+    if (value == value.roundToDouble()) {
+      format.minimumFractionDigits = 0;
+      format.maximumFractionDigits = 0;
+    }
+    return format.format(value);
   }
 }
 
@@ -107,13 +128,13 @@ DisplayPrice displayPriceOf(ProductDetails details) {
   final base = pickBasePhase(phasesOf(details));
   if (base != null) {
     return DisplayPrice(
-      formatted: base.formattedPrice,
+      formatted: formatDisplayPrice(base.formattedPrice),
       amountMicros: base.amountMicros,
       currencyCode: base.currencyCode,
     );
   }
   return DisplayPrice(
-    formatted: details.price,
+    formatted: formatDisplayPrice(details.price),
     amountMicros: (details.rawPrice * 1000000).round(),
     currencyCode: details.currencyCode,
   );
