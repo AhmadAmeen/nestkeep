@@ -139,3 +139,34 @@ DisplayPrice displayPriceOf(ProductDetails details) {
     currencyCode: details.currencyCode,
   );
 }
+
+/// The paywall's value-anchor line, in pieces (build 24): the text
+/// before the bolded comparison, the comparison itself, the text
+/// between, and the bolded price clause. The line compares Pro's
+/// yearly price against what rival home apps charge, and it must
+/// never mix currencies. When the resolved yearly price is USD,
+/// the comparison is the researched figure itself (HouseWell
+/// charges $120 a year against our $29.99). In any other currency
+/// the dollar figure is dropped and the comparison becomes the
+/// multiple from the same research — four times — beside the
+/// resolved local price. An unknown currency takes the multiple
+/// branch too: the dollar claim is only made when the price is
+/// known to be dollars.
+({String before, String highlight, String middle, String price})
+valueAnchorParts(DisplayPrice yearly) {
+  final price = '${yearly.formatted} a year.';
+  if (yearly.currencyCode == 'USD') {
+    return (
+      before: 'Other home apps charge up to ',
+      highlight: '\$120 a year',
+      middle: ' for this. Pro is ',
+      price: price,
+    );
+  }
+  return (
+    before: 'Other home apps charge up to ',
+    highlight: 'four times more',
+    middle: ' for this. Pro is ',
+    price: price,
+  );
+}

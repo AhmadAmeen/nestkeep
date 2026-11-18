@@ -63,6 +63,23 @@ class MyHomeScreen extends StatelessWidget {
                 onAddHome: onAddHome,
               ),
             ),
+            // The home's editor lives in the header now (build 24):
+            // one pencil beside the avatar, opening the details
+            // screen straight in edit mode. The hub grid no longer
+            // carries a separate Details tile.
+            IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              tooltip: 'Edit home',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => HomeDetailsScreen(
+                    state: state,
+                    onOpenPaywall: onOpenPaywall,
+                    startEditing: true,
+                  ),
+                ),
+              ),
+            ),
             AvatarButton(state: state, onTap: onAvatarTap),
           ],
         ),
@@ -250,17 +267,6 @@ class MyHomeScreen extends StatelessWidget {
             : '${state.homeNotes.length} note${state.homeNotes.length == 1 ? '' : 's'}',
         onTap: () => Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => NotesScreen(state: state),
-        )),
-      ),
-      _HubTile(
-        icon: Icons.info_outline,
-        color: context.primary,
-        label: 'Details',
-        sublabel:
-            '${homeTypeLabel(state.activeHome!.type)} · built ${state.activeHome!.yearBuilt}',
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) =>
-              HomeDetailsScreen(state: state, onOpenPaywall: onOpenPaywall),
         )),
       ),
     ];

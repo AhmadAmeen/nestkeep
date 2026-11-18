@@ -693,3 +693,41 @@ int typicalWarrantyMonths(String applianceName) {
   }
   return 12; // small appliances default
 }
+
+/// A category the user added themselves (build 24, Pro to create).
+/// Categories are global, not per home: the same list feeds the
+/// expense form and the custom-job form on every home. Expenses and
+/// jobs store their category as a plain string, so deleting one of
+/// these never touches history — the name simply stops being
+/// offered, and anything already filed under it keeps displaying
+/// it. Synced like the other record tables (updatedAt is the ISO
+/// string the sync merge compares, createdAt rides along as the
+/// epoch int the local tables use).
+class CustomCategory {
+  final int? id;
+  final String name;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  CustomCategory({
+    this.id,
+    required this.name,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  Map<String, Object?> toMap() => {
+        'id': id,
+        'name': name,
+        'createdAt': createdAt.millisecondsSinceEpoch,
+        'updatedAt': updatedAt.toIso8601String(),
+      };
+
+  factory CustomCategory.fromMap(Map<String, Object?> m) => CustomCategory(
+        id: m['id'] as int?,
+        name: m['name'] as String,
+        createdAt:
+            DateTime.fromMillisecondsSinceEpoch(m['createdAt'] as int),
+        updatedAt: DateTime.parse(m['updatedAt'] as String),
+      );
+}

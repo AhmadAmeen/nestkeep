@@ -145,18 +145,22 @@ void main() {
       expect(bar.value, 0);
     });
 
-    testWidgets('dated: the bar fraction matches the lifespan helper',
+    testWidgets('dated: the bar shows the life REMAINING (build 24)',
         (tester) async {
+      // Three years into a 12-year life: a quarter used, so the
+      // bar stands at three quarters — full at new, draining with
+      // age. (At exactly half, used and remaining coincide, which
+      // is why this fixture is a quarter.)
       final a = _appliance(
-        purchaseDate: now.subtract(const Duration(days: 2192)),
+        purchaseDate: now.subtract(const Duration(days: 1096)),
         lifespanYears: 12,
       );
       await pumpSection(tester, a);
       final bar = tester.widget<LinearProgressIndicator>(
           find.byType(LinearProgressIndicator));
-      expect(bar.value, closeTo(lifeUsed(a, now), 0.001));
-      expect(bar.value, closeTo(0.5, 0.01));
-      expect(find.text('Year 7 of about 12'), findsOneWidget);
+      expect(bar.value, closeTo(lifeRemaining(a, now), 0.001));
+      expect(bar.value, closeTo(0.75, 0.01));
+      expect(find.text('Year 4 of about 12'), findsOneWidget);
       expect(find.text('Add a purchase date to see its life'), findsNothing);
     });
   });

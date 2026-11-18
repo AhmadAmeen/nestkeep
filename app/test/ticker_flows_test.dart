@@ -413,9 +413,12 @@ void main() {
   /// Dismiss every celebration on screen (a flow can queue more
   /// than one). The presence check polls only briefly: a long
   /// empty poll would burn fake seconds the released ticker
-  /// (3s life) does not have.
+  /// (3s life) does not have. Build 24: celebrations also arrive
+  /// only after the ~550ms settle delay, which the pumpAndSettle
+  /// after each dismissal absorbs (the offer loop keeps frames
+  /// scheduled until the next celebration is up).
   Future<void> dismissCelebrations(WidgetTester tester) async {
-    for (var i = 0; i < 4; i++) {
+    for (var i = 0; i < 8; i++) {
       for (var j = 0;
           j < 5 && find.text('BADGE EARNED').evaluate().isEmpty;
           j++) {
@@ -450,6 +453,12 @@ void main() {
     await dismissCelebrations(tester);
     await pumpUntilFound(tester, find.text('Expense added'));
     expect(find.text('Expense added'), findsOneWidget);
+    // The end state (build 24): still on the Costs screen, the
+    // dialog gone, the new cost in the list and in state.
+    expect(find.text('Add a cost'), findsNothing);
+    expect(find.textContaining('Spent in'), findsOneWidget);
+    expect(find.text('\$40'), findsWidgets);
+    expect(state.expenses, hasLength(1));
     await tester.pump(const Duration(seconds: 4));
   });
 
@@ -471,6 +480,12 @@ void main() {
     await dismissCelebrations(tester);
     await pumpUntilFound(tester, find.text('Task added'));
     expect(find.text('Task added'), findsOneWidget);
+    // The end state (build 24): still on Plan, the dialog gone,
+    // the new job listed and in state.
+    expect(find.text('Add a custom job'), findsNothing);
+    expect(find.text('Water plants'), findsWidgets);
+    expect(
+        state.tasks.where((t) => t.title == 'Water plants'), hasLength(1));
     await tester.pump(const Duration(seconds: 4));
   });
 
@@ -502,6 +517,63 @@ void main() {
     await dismissCelebrations(tester);
     await pumpUntilFound(tester, find.text('Document added'));
     expect(find.text('Document added'), findsOneWidget);
+    // The end state (build 24): still on the Documents screen,
+    // the new document listed and in state.
+    expect(find.text('Deed'), findsWidgets);
+    expect(state.docs, hasLength(1));
+    await tester.pump(const Duration(seconds: 4));
+  });
+
+  testWidgets('first job completion: the celebration shows and '
+      'dismisses cleanly, and Today shows the job done',
+      (tester) async {
+    // One library job, due tomorrow, seeded before the Shell so
+    // nothing is earned until the completion itself.
+    final state = await tester.runAsync(() async {
+          final s = await seededState();
+          await AppDb.insertTask(TaskInstance(
+            homeId: s.activeHome!.id!,
+            templateId: 'hvac-filter',
+            title: 'Change the HVAC air filter',
+            category: 'HVAC',
+            dueDate: DateTime.now().add(const Duration(days: 1)),
+            updatedAt: DateTime.now(),
+          ));
+          await s.reload();
+          return s;
+        }) ??
+        (throw StateError('seed'));
+    await pumpShell(tester, state);
+
+    // Today is the first tab and the job is offered with its tick
+    // (the Next up card's Mark done button — the same quick-done
+    // path as every task card's tick).
+    expect(find.text('Change the HVAC air filter'), findsWidgets);
+    await tester.tap(find.widgetWithText(FilledButton, 'Mark done'));
+    await tester.pumpAndSettle();
+    // The tick asks first (build 23): the shared done dialog.
+    expect(find.text('Done. What did it cost?'), findsOneWidget);
+    await tester.tap(find.text('Save'));
+    // The check animation plays, the card glides away, and only
+    // then does the completion write and reload — drive both
+    // clocks until the first-job celebration is on screen.
+    await pumpUntil(
+        tester, () => find.text('BADGE EARNED').evaluate().isNotEmpty);
+    expect(find.text('BADGE EARNED'), findsOneWidget);
+    await dismissCelebrations(tester);
+    expect(find.text('BADGE EARNED'), findsNothing);
+
+    // The end state: back on Today, the job done in state, and
+    // the Completed card counting it. Job completion has no
+    // ticker by design (build 13 on): its confirmation is the
+    // check animation and this count, so those stand in for the
+    // ticker assertion the sibling tests make.
+    expect(
+        state.tasks.where((t) => t.status == TaskStatus.done), hasLength(1));
+    final completedCard = find.ancestor(
+        of: find.text('Completed'), matching: find.byType(NkCard));
+    expect(find.descendant(of: completedCard, matching: find.text('1')),
+        findsOneWidget);
     await tester.pump(const Duration(seconds: 4));
   });
 }

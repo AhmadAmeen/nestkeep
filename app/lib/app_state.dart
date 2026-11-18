@@ -45,6 +45,12 @@ class AppState extends ChangeNotifier {
   List<Belonging> belongings = [];
   List<HomeSpace> spaces = [];
   List<HomeDoc> docs = [];
+
+  /// The user's own categories (build 24), in creation order.
+  /// Global, not per home — one list feeds every category picker.
+  /// Creating one is Pro; the list itself loads for everyone, so a
+  /// lapsed Pro keeps seeing and using theirs.
+  List<CustomCategory> customCategories = [];
   Entitlement entitlement = Entitlement.free;
 
   // PRO-TEST-UNLOCK (build 22, TEMPORARY): local test flag that makes
@@ -135,6 +141,8 @@ class AppState extends ChangeNotifier {
 
     currentAvatar = avatarById(await AppDb.getSetting('avatar'));
 
+    customCategories = await AppDb.customCategories();
+
     homes = await AppDb.homes();
     for (final h in homes) {
       final p = await loadProfile(h.id!);
@@ -186,6 +194,8 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> reload() async {
+    // Categories are global: refresh them even with no home yet.
+    customCategories = await AppDb.customCategories();
     if (activeHome == null) return;
     _refreshAccount();
     final id = activeHome!.id!;
@@ -218,6 +228,30 @@ class AppState extends ChangeNotifier {
     activeHome = h;
     await AppDb.setSetting('activeHomeId', h.id.toString());
     await reload();
+  }
+
+  /// Add one of the user's own categories (build 24). The Pro gate
+  /// and the cap live in the picker, not here; this just writes and
+  /// refreshes. Returns the stored row.
+  Future<CustomCategory> addCustomCategory(String name) async {
+    final now = DateTime.now();
+    final id = await AppDb.insertCustomCategory(CustomCategory(
+      name: name,
+      createdAt: now,
+      updatedAt: now,
+    ));
+    customCategories = await AppDb.customCategories();
+    notifyListeners();
+    return customCategories.firstWhere((c) => c.id == id);
+  }
+
+  /// Remove one of the user's own categories. Expenses and jobs
+  /// that already use the name keep it as a plain string — only
+  /// the pickers stop offering it.
+  Future<void> removeCustomCategory(int id) async {
+    await AppDb.deleteCustomCategory(id);
+    customCategories = await AppDb.customCategories();
+    notifyListeners();
   }
 
   /// The library jobs the user has ticked for a home, from the cache

@@ -7,6 +7,7 @@ import '../pdf_report.dart';
 import '../sync.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import '../widgets/category_picker.dart';
 
 /// Cost tracker. Free: this year's total and the recent list. Pro: switch
 /// years, per-category breakdown, and the PDF home report.
@@ -197,14 +198,6 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     final note = TextEditingController(text: existing?.note ?? '');
     var category = existing?.category ?? 'Interior';
     var date = existing?.date ?? DateTime.now();
-    const baseCategories = [
-      'HVAC', 'Plumbing', 'Roof & Gutters', 'Exterior', 'Interior',
-      'Safety', 'Appliances', 'Seasonal',
-    ];
-    final categories = <String>{
-      ...baseCategories,
-      if (isEdit) existing.category,
-    }.toList();
 
     final action = await showDialog<String>(
       context: context,
@@ -227,13 +220,23 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 decoration: const InputDecoration(labelText: 'What for'),
               ),
               const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                initialValue: category,
-                decoration: const InputDecoration(labelText: 'Category'),
-                items: categories
-                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                    .toList(),
-                onChanged: (v) => category = v ?? category,
+              // The shared category picker (build 24): built-ins,
+              // the user's own categories, and the Pro-gated way to
+              // add another. An edit keeps whatever name the expense
+              // already carries, even a since-deleted custom one.
+              CategoryField(
+                value: category,
+                onTap: () async {
+                  final picked = await showCategoryPicker(
+                    ctx,
+                    state: state,
+                    current: category,
+                    onOpenPaywall: widget.onOpenPaywall,
+                  );
+                  if (picked != null) {
+                    setDialogState(() => category = picked);
+                  }
+                },
               ),
               const SizedBox(height: 4),
               ListTile(

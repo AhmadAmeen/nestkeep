@@ -65,6 +65,17 @@ double lifeUsed(Appliance a, DateTime now) {
   return used.clamp(0.0, 1.2).toDouble();
 }
 
+/// Fraction of expected life REMAINING: 1 = brand new, 0 = at (or
+/// past) the end of its typical life. This is what the life bar
+/// draws (build 24): the bar starts full and drains as the
+/// appliance ages, matching the "Life left ~N yrs" label beside it.
+/// No purchase date means no clock: 0, so the undated track stays
+/// empty under its "add a purchase date" label.
+double lifeRemaining(Appliance a, DateTime now) {
+  if (a.purchaseDate == null) return 0;
+  return (1 - lifeUsed(a, now)).clamp(0.0, 1.0).toDouble();
+}
+
 LifeStatus lifeStatus(Appliance a, DateTime now) {
   if (a.purchaseDate == null) return LifeStatus.good;
   final used = lifeUsed(a, now);

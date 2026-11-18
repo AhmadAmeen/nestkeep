@@ -6,6 +6,7 @@ import 'package:nestkeep/screens/appliances.dart';
 import 'package:nestkeep/screens/documents.dart';
 import 'package:nestkeep/screens/documents_section.dart';
 import 'package:nestkeep/screens/history.dart';
+import 'package:nestkeep/screens/home_details.dart';
 import 'package:nestkeep/screens/my_home.dart';
 import 'package:nestkeep/theme.dart';
 
@@ -151,8 +152,10 @@ void main() {
     expect(find.text('\$250 listed'), findsOneWidget);
     expect(find.text('Home notes'), findsOneWidget);
     expect(find.text('1 note'), findsOneWidget);
-    expect(find.text('Details'), findsOneWidget);
-    expect(find.text('House · built 1998'), findsOneWidget);
+    // Build 24: no Details tile any more — the home's editor is
+    // the pencil in the header (next test).
+    expect(find.text('Details'), findsNothing);
+    expect(find.text('House · built 1998'), findsNothing);
     // Contractors and Receipts both report one saved entry.
     expect(find.text('1 saved'), findsNWidgets(2));
 
@@ -161,6 +164,22 @@ void main() {
     expect(find.text('Your pros'), findsNothing);
     expect(find.text('House deed'), findsNothing);
     expect(find.text('Fridge'), findsNothing);
+  });
+
+  testWidgets('the header pencil opens the home editor in edit '
+      'mode (build 24)', (tester) async {
+    await _pumpHub(tester, _seeded());
+    // Exactly one edit affordance on the hub: the header pencil
+    // (the home dropdown is closed, so its menu's Edit home entry
+    // is not in the tree).
+    expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.edit_outlined));
+    await tester.pumpAndSettle();
+    expect(find.byType(HomeDetailsScreen), findsOneWidget);
+    // Straight into edit mode: the name field and Save changes
+    // are up without a further tap.
+    expect(find.widgetWithText(TextField, 'Maple House'), findsOneWidget);
+    expect(find.text('Save changes'), findsOneWidget);
   });
 
   testWidgets('the Costs tile uses the existing costs route',

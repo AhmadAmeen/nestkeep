@@ -88,6 +88,29 @@ void main() {
     });
   });
 
+  group('lifeRemaining (what the bar draws, build 24)', () {
+    test('a new appliance starts full', () {
+      final a = _appliance(purchaseDate: now, lifespanYears: 10);
+      expect(lifeRemaining(a, now), closeTo(1.0, 0.01));
+    });
+
+    test('it drains with age: a quarter used leaves three quarters', () {
+      final a = _appliance(purchaseDate: yearsAgo(3), lifespanYears: 12);
+      expect(lifeRemaining(a, now), closeTo(0.75, 0.01));
+    });
+
+    test('at and past the end of its life it is empty', () {
+      final at = _appliance(purchaseDate: yearsAgo(10), lifespanYears: 10);
+      expect(lifeRemaining(at, now), closeTo(0.0, 0.01));
+      final past = _appliance(purchaseDate: yearsAgo(30), lifespanYears: 10);
+      expect(lifeRemaining(past, now), 0);
+    });
+
+    test('no purchase date means no clock: the track stays empty', () {
+      expect(lifeRemaining(_appliance(), now), 0);
+    });
+  });
+
   group('labels', () {
     test('year index counts the year the appliance is in', () {
       final a = _appliance(

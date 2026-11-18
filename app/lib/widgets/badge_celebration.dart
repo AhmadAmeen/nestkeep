@@ -26,22 +26,17 @@ class BadgeCelebrationOverlay extends StatefulWidget {
       _BadgeCelebrationOverlayState();
 }
 
-class _BadgeCelebrationOverlayState extends State<BadgeCelebrationOverlay>
-    with TickerProviderStateMixin {
-  static const _goldLight = Color(0xFFF6C453);
-  static const _goldDeep = Color(0xFFE8A33D);
+const _goldLight = Color(0xFFF6C453);
+const _goldDeep = Color(0xFFE8A33D);
 
-  late final AnimationController _scale;
+class _BadgeCelebrationOverlayState extends State<BadgeCelebrationOverlay>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _confetti;
   late final List<_Particle> _particles;
 
   @override
   void initState() {
     super.initState();
-    _scale = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 700),
-    )..forward();
     _confetti = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2200),
@@ -54,15 +49,12 @@ class _BadgeCelebrationOverlayState extends State<BadgeCelebrationOverlay>
 
   @override
   void dispose() {
-    _scale.dispose();
     _confetti.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final badge = widget.badge;
-    final iconColor = badge.isProBadge ? _goldDeep : context.primary;
     return Material(
       type: MaterialType.transparency,
       child: Stack(
@@ -95,7 +87,53 @@ class _BadgeCelebrationOverlayState extends State<BadgeCelebrationOverlay>
             ),
           ),
           Center(
-            child: Padding(
+            child: BadgePanel(badge: widget.badge, onDismiss: widget.onDismiss),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The celebration's panel itself: the badge circle springing in
+/// over the top edge of the opaque card that carries the words.
+/// Shared by the earn-moment overlay above and by the badge detail
+/// dialog (build 24: tapping an earned badge in Profile reopens
+/// this same panel, without the confetti).
+class BadgePanel extends StatefulWidget {
+  final BadgeResult badge;
+  final VoidCallback onDismiss;
+
+  const BadgePanel({super.key, required this.badge, required this.onDismiss});
+
+  @override
+  State<BadgePanel> createState() => _BadgePanelState();
+}
+
+class _BadgePanelState extends State<BadgePanel>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _scale = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _scale.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final badge = widget.badge;
+    final iconColor = badge.isProBadge ? _goldDeep : context.primary;
+    return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 320),
@@ -219,12 +257,28 @@ class _BadgeCelebrationOverlayState extends State<BadgeCelebrationOverlay>
                   ],
                 ),
               ),
-            ),
-          ),
-        ],
-      ),
     );
   }
+}
+
+/// Show one earned badge's detail (build 24): the same panel as
+/// the earn moment — circle art, name, description — in a dialog,
+/// without the confetti. Used when a badge on the Profile shelf is
+/// tapped. The dialog's own backdrop dims the screen; the panel
+/// carries its card styling itself.
+Future<void> showBadgeDetail(BuildContext context, BadgeResult badge) {
+  return showDialog<void>(
+    context: context,
+    builder: (dialogContext) => Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: EdgeInsets.zero,
+      child: BadgePanel(
+        badge: badge,
+        onDismiss: () => Navigator.of(dialogContext).pop(),
+      ),
+    ),
+  );
 }
 
 /// One confetti piece: a radial burst from the badge, pulled down by

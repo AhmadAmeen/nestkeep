@@ -10,6 +10,7 @@ import '../sync.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import '../widgets/avatar_menu.dart';
+import '../widgets/category_picker.dart';
 import 'job_picker.dart';
 import 'plan_calendar.dart';
 import 'today.dart';
@@ -249,7 +250,8 @@ class _PlanScreenState extends State<PlanScreen> {
     }
     final result = await showDialog<_CustomJob>(
       context: context,
-      builder: (_) => const _CustomJobDialog(),
+      builder: (_) =>
+          _CustomJobDialog(state: state, onOpenPaywall: onOpenPaywall),
     );
     if (result == null) return;
     final now = DateTime.now();
@@ -275,7 +277,11 @@ class _CustomJob {
 }
 
 class _CustomJobDialog extends StatefulWidget {
-  const _CustomJobDialog();
+  final AppState state;
+  final VoidCallback onOpenPaywall;
+
+  const _CustomJobDialog(
+      {required this.state, required this.onOpenPaywall});
 
   @override
   State<_CustomJobDialog> createState() => _CustomJobDialogState();
@@ -285,11 +291,6 @@ class _CustomJobDialogState extends State<_CustomJobDialog> {
   final _title = TextEditingController();
   String _category = 'Interior';
   DateTime _due = DateTime.now().add(const Duration(days: 7));
-
-  static const categories = [
-    'HVAC', 'Plumbing', 'Roof & Gutters', 'Exterior', 'Interior',
-    'Safety', 'Appliances', 'Seasonal',
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -304,13 +305,20 @@ class _CustomJobDialogState extends State<_CustomJobDialog> {
             autofocus: true,
           ),
           const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: _category,
-            decoration: const InputDecoration(labelText: 'Category'),
-            items: categories
-                .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                .toList(),
-            onChanged: (v) => setState(() => _category = v ?? _category),
+          // The shared category picker (build 24), same as the
+          // expense form: built-ins, the user's own categories,
+          // and the Pro-gated way to add another.
+          CategoryField(
+            value: _category,
+            onTap: () async {
+              final picked = await showCategoryPicker(
+                context,
+                state: widget.state,
+                current: _category,
+                onOpenPaywall: widget.onOpenPaywall,
+              );
+              if (picked != null) setState(() => _category = picked);
+            },
           ),
           const SizedBox(height: 8),
           ListTile(

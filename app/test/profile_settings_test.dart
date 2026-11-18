@@ -94,6 +94,32 @@ void main() {
     expect(find.textContaining('earned'), findsOneWidget);
   });
 
+  testWidgets('tapping an earned badge opens its detail panel '
+      '(build 24)', (tester) async {
+    final state = AppState();
+    final threeWeeksAgo = DateTime.now().subtract(const Duration(days: 21));
+    state.tasks = [
+      _task(status: TaskStatus.done, due: threeWeeksAgo, done: threeWeeksAgo),
+    ];
+    await _pumpProfile(tester, state);
+    await tester.scrollUntilVisible(
+      find.text('First job done'),
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('First job done'));
+    await tester.pumpAndSettle();
+    // The earn-moment panel, as a dialog: heading, name, blurb,
+    // and the same dismiss button.
+    expect(find.text('BADGE EARNED'), findsOneWidget);
+    expect(find.text('Your first job is in the books.'), findsOneWidget);
+    expect(find.text('Nice'), findsOneWidget);
+    await tester.tap(find.text('Nice'));
+    await tester.pumpAndSettle();
+    expect(find.text('BADGE EARNED'), findsNothing);
+    expect(find.text('Your first job is in the books.'), findsNothing);
+  });
+
   testWidgets('Profile with nothing earned shows the first-badge hint', (
     tester,
   ) async {
@@ -149,8 +175,8 @@ void main() {
     expect(find.text('Delete account'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('Version'), 120);
     expect(find.text('Version'), findsOneWidget);
-    expect(find.text('1.5.5'), findsOneWidget);
-    expect(find.textContaining('NestKeep 1.5.5'), findsOneWidget);
+    expect(find.text('1.5.6'), findsOneWidget);
+    expect(find.textContaining('NestKeep 1.5.6'), findsOneWidget);
   });
 
   testWidgets('Profile carries the appearance section', (tester) async {

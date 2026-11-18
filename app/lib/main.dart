@@ -37,9 +37,13 @@ final RouteObserver<PageRoute<dynamic>> appRouteObserver =
 /// presented once navigation has fully settled: the route on top is
 /// a page, its transition has finished, and no navigation event has
 /// happened since the offer was made (every event bumps [serial]).
-/// Anything less and the offer waits for the next nudge — a pop, a
-/// push, or the next state change — so the celebration is never
-/// lost, just never early.
+/// Build 24 adds the Shell's settle delay on top: the offer must
+/// also survive ~550ms after the last transition ends, and any
+/// navigation event in that window restarts the wait (see
+/// _ShellState._celebrationSettleDelay). Anything less and the
+/// offer waits for the next nudge — a pop, a push, or the next
+/// state change — so the celebration is never lost, just never
+/// early.
 class CelebrationObserver extends NavigatorObserver {
   Route<dynamic>? topRoute;
   int serial = 0;
@@ -303,20 +307,92 @@ class _ShellState extends State<Shell> with RouteAware {
   bool get _celebrationInTheWay =>
       _celebrationShowing || state.pendingCelebrations.isNotEmpty;
 
+  /// The settle delay (build 24): how long navigation must stay
+  /// settled before a celebration may be presented. Build 20's
+  /// guard — present on the first frame after the offer, if the
+  /// route on top looks settled — was not enough on a real phone:
+  /// a save flow reloads (queueing the badge) and only THEN pops
+  /// its form, and a frame landing in that gap presented the
+  /// celebration over the form, so the flow's own pop closed the
+  /// celebration dialog instead of the form and the user never
+  /// reached the listing (Grand's report, reproduced in
+  /// celebration_settle_test). Now the offer must survive this
+  /// long after the last route transition ends; any navigation
+  /// event during the wait restarts it, so a celebration is never
+  /// on the stack while routes are being pushed or popped.
+  static const _celebrationSettleDelay = Duration(milliseconds: 550);
+
+  /// The navigation serial the current offer's wait is anchored to,
+  /// and the frame timestamp the wait started from (stamped once
+  /// presenting first becomes possible; while a transition is still
+  /// running it keeps moving, so the delay counts from the end of
+  /// the transition, not from the offer).
+  int? _offerSerial;
+  Duration? _offerSince;
+  bool _offerLoopRunning = false;
+
   void _maybeCelebrate() {
     TickerCenter.release();
-    if (_celebrationShowing || state.pendingCelebrations.isEmpty) return;
+    if (_celebrationShowing || state.pendingCelebrations.isEmpty) {
+      _offerSerial = null;
+      _offerSince = null;
+      return;
+    }
     final serial = celebrationObserver.serial;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted ||
-          _celebrationShowing ||
-          state.pendingCelebrations.isEmpty) {
-        return;
-      }
-      if (celebrationObserver.serial != serial) return;
-      if (!celebrationObserver.canPresent) return;
-      _showCelebration();
-    });
+    if (_offerSerial != serial) {
+      // A fresh offer, or navigation moved since the wait began:
+      // the wait restarts from the latest event.
+      _offerSerial = serial;
+      _offerSince = null;
+    }
+    _keepOfferLoopRunning();
+  }
+
+  /// The offer loop: one post-frame callback at a time, re-armed
+  /// while an offer waits, so the settle delay is measured on frame
+  /// timestamps (real vsync on a phone, the test clock in tests)
+  /// rather than on a timer that could fire mid-navigation.
+  void _keepOfferLoopRunning() {
+    if (_offerLoopRunning) return;
+    _offerLoopRunning = true;
+    WidgetsBinding.instance.addPostFrameCallback(_offerFrame);
+    WidgetsBinding.instance.scheduleFrame();
+  }
+
+  void _offerFrame(Duration timeStamp) {
+    _offerLoopRunning = false;
+    if (!mounted ||
+        _celebrationShowing ||
+        state.pendingCelebrations.isEmpty) {
+      _offerSerial = null;
+      _offerSince = null;
+      return;
+    }
+    final serial = celebrationObserver.serial;
+    if (serial != _offerSerial) {
+      // Navigation moved during the wait: restart it from here.
+      _offerSerial = serial;
+      _offerSince = timeStamp;
+      _keepOfferLoopRunning();
+      return;
+    }
+    if (!celebrationObserver.canPresent) {
+      // A route transition is still running, or a dialog or sheet
+      // is on top: presenting stays impossible, and the delay
+      // counts from when it becomes possible — keep the wait
+      // anchored to this frame.
+      _offerSince = timeStamp;
+      _keepOfferLoopRunning();
+      return;
+    }
+    _offerSince ??= timeStamp;
+    if (timeStamp - _offerSince! < _celebrationSettleDelay) {
+      _keepOfferLoopRunning();
+      return;
+    }
+    _offerSerial = null;
+    _offerSince = null;
+    _showCelebration();
   }
 
   Future<void> _showCelebration() async {

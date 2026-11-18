@@ -252,4 +252,41 @@ void main() {
       expect(formatDisplayPrice('¥1,000'), '¥1,000');
     });
   });
+
+  group('valueAnchorParts (build 24: never mix currencies)', () {
+    test('a USD yearly price keeps the researched \$120 comparison',
+        () {
+      final parts = valueAnchorParts(const DisplayPrice(
+        formatted: '\$29.99',
+        amountMicros: 29990000,
+        currencyCode: 'USD',
+      ));
+      expect(parts.before, 'Other home apps charge up to ');
+      expect(parts.highlight, '\$120 a year');
+      expect(parts.middle, ' for this. Pro is ');
+      expect(parts.price, '\$29.99 a year.');
+    });
+
+    test('any other currency drops the dollar figure for the '
+        'four-times multiple beside the local price', () {
+      final parts = valueAnchorParts(const DisplayPrice(
+        formatted: 'Rs 8,300',
+        amountMicros: 8300000000,
+        currencyCode: 'PKR',
+      ));
+      expect(parts.highlight, 'four times more');
+      expect(parts.price, 'Rs 8,300 a year.');
+      final line =
+          '${parts.before}${parts.highlight}${parts.middle}${parts.price}';
+      expect(line, contains('Rs 8,300'));
+      expect(line, isNot(contains('\$')));
+      expect(line, isNot(contains('120')));
+    });
+
+    test('an unknown currency takes the multiple branch too', () {
+      final parts = valueAnchorParts(
+          const DisplayPrice(formatted: '29.99'));
+      expect(parts.highlight, 'four times more');
+    });
+  });
 }

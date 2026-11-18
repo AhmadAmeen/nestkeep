@@ -296,8 +296,12 @@ class LifeChip extends StatelessWidget {
   }
 }
 
-/// The appliance life bar: fraction of expected life used, in the
-/// status colour, on the standard track.
+/// The appliance life bar: the fraction of expected life REMAINING,
+/// in the status colour, on the standard track. It starts full when
+/// the appliance is new and drains as it ages (build 24 — before,
+/// it filled with age, so a brand-new appliance showed an empty
+/// bar under a "Life left ~10 yrs" label). Shared by the appliance
+/// card and the detail screen so both always agree.
 class LifeBar extends StatelessWidget {
   final Appliance appliance;
   final DateTime now;
@@ -308,11 +312,11 @@ class LifeBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final used = lifeUsed(appliance, now);
+    final remaining = lifeRemaining(appliance, now);
     return ClipRRect(
       borderRadius: BorderRadius.circular(99),
       child: LinearProgressIndicator(
-        value: used.clamp(0.0, 1.0).toDouble(),
+        value: remaining,
         minHeight: height,
         backgroundColor: context.line,
         valueColor: AlwaysStoppedAnimation(

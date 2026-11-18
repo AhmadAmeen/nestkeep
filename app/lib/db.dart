@@ -15,7 +15,7 @@ class AppDb {
     final path = p.join(dir, 'nestkeep.db');
     _db = await openDatabase(
       path,
-      version: 5,
+      version: 6,
       onUpgrade: (db, oldVersion, newVersion) async {
         // v2 (build 5): completion details, appliance notes, and the
         // contractor book, home notes and belongings tables. Purely
@@ -48,6 +48,13 @@ class AppDb {
         if (oldVersion < 5) {
           await db.execute(
               'ALTER TABLE appliances ADD COLUMN condition TEXT');
+        }
+        // v6 (build 24): the user's own categories (Pro to create).
+        // Global, not per home; expenses and jobs keep storing the
+        // category as a plain string, so this table is only the
+        // pickers' source. Additive again.
+        if (oldVersion < 6) {
+          await _createV6Tables(db);
         }
       },
       onCreate: (db, _) async {
@@ -128,9 +135,20 @@ class AppDb {
         await _createV2Tables(db);
         await _createV3Tables(db);
         await _createV4Tables(db);
+        await _createV6Tables(db);
       },
     );
     return _db!;
+  }
+
+  static Future<void> _createV6Tables(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS custom_categories(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        createdAt INTEGER NOT NULL,
+        updatedAt TEXT NOT NULL
+      )''');
   }
 
   static Future<void> _createV4Tables(Database db) async {
@@ -545,10 +563,32 @@ class AppDb {
     await db.delete('belongings', where: 'id = ?', whereArgs: [id]);
   }
 
+  // ---------- custom categories (build 24, global) ----------
+  static Future<int> insertCustomCategory(CustomCategory c) async {
+    final db = await open();
+    final map = c.toMap()..remove('id');
+    return db.insert('custom_categories', map);
+  }
+
+  static Future<List<CustomCategory>> customCategories() async {
+    final db = await open();
+    final rows = await db.query(
+      'custom_categories',
+      orderBy: 'createdAt, id',
+    );
+    return rows.map(CustomCategory.fromMap).toList();
+  }
+
+  static Future<void> deleteCustomCategory(int id) async {
+    final db = await open();
+    await db.delete('custom_categories', where: 'id = ?', whereArgs: [id]);
+  }
+
   /// Wipe everything (used by in-app account deletion when the user also
   /// chooses to clear this phone).
   static Future<void> wipeAll() async {
     final db = await open();
+    await db.delete('custom_categories');
     await db.delete('task_instances');
     await db.delete('appliance_files');
     await db.delete('appliances');

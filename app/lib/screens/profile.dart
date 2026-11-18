@@ -6,6 +6,7 @@ import '../theme.dart';
 import '../widgets.dart';
 import '../widgets/avatar_menu.dart';
 import '../widgets/avatar_picker.dart';
+import '../widgets/badge_celebration.dart';
 
 /// Profile: who you are in the app — the optional account, your
 /// avatar, how the app looks (build 20 moved Appearance here from
@@ -342,7 +343,14 @@ class _BadgesCard extends StatelessWidget {
                 final bgColor = b.isProBadge
                     ? NkColors.amber.withValues(alpha: 0.15)
                     : context.primary.withValues(alpha: 0.13);
-                return Column(
+                // Build 24: tapping an earned badge reopens its
+                // detail — the same panel as the earn moment. The
+                // shelf only ever shows earned badges (build 19),
+                // so every tile here is tappable.
+                return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => showBadgeDetail(context, b),
+                  child: Column(
                   children: [
                     Container(
                       width: 48,
@@ -365,6 +373,7 @@ class _BadgesCard extends StatelessWidget {
                       ),
                     ),
                   ],
+                  ),
                 );
               },
             ),

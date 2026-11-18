@@ -311,11 +311,16 @@ class _PaywallScreenState extends State<PaywallScreen> {
   }
 
   /// The honest price anchor, from the competitor research: the big
-  /// rivals charge up to $120 a year for this class of app.
+  /// rivals charge up to $120 a year for this class of app. The
+  /// wording follows the resolved price's currency (build 24): a
+  /// USD price keeps the $120 figure; any other currency drops it
+  /// for the "four times more" multiple, so the line never mixes
+  /// currencies. See valueAnchorParts in pricing.dart.
   Widget _valueAnchor(BuildContext context) {
     final base = TextStyle(fontSize: 14.5, height: 1.4, color: context.muted);
     final strong = base.copyWith(
         fontWeight: FontWeight.w700, color: context.navyText);
+    final anchor = valueAnchorParts(_yearly);
     // IntrinsicHeight: the accent-bar NkCard stretches a Row, which
     // needs a finite height inside the scrolling column.
     return IntrinsicHeight(
@@ -331,12 +336,10 @@ class _PaywallScreenState extends State<PaywallScreen> {
               TextSpan(
                 style: base,
                 children: [
-                  const TextSpan(text: 'Other home apps charge up to '),
-                  TextSpan(text: '\$120 a year', style: strong),
-                  const TextSpan(text: ' for this. Pro is '),
-                  TextSpan(
-                      text: '${_yearly.formatted} a year.',
-                      style: strong),
+                  TextSpan(text: anchor.before),
+                  TextSpan(text: anchor.highlight, style: strong),
+                  TextSpan(text: anchor.middle),
+                  TextSpan(text: anchor.price, style: strong),
                 ],
               ),
             ),

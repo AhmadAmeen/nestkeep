@@ -92,6 +92,10 @@ class SyncService {
     }
 
     await syncTable('homes', 'homes', (r) => r);
+    // The user's own categories (build 24): global rows whose
+    // updatedAt is the ISO string the merge compares, like the
+    // other record tables.
+    await syncTable('custom_categories', 'customCategories', (r) => r);
     await syncTable('task_instances', 'tasks', (r) => r);
     await syncTable('appliances', 'appliances', (r) => r);
     await syncTable('expenses', 'expenses', (r) => r);
@@ -147,7 +151,7 @@ class SyncService {
     final uid = user!.uid;
     for (final name in [
       'homes', 'tasks', 'appliances', 'expenses', 'receipts', 'receiptImages',
-      'contractors', 'homeNotes', 'belongings'
+      'contractors', 'homeNotes', 'belongings', 'customCategories'
     ]) {
       final snap =
           await FirebaseFirestore.instance.collection('users/$uid/$name').get();
