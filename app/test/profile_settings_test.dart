@@ -1,11 +1,15 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_core_platform_interface/test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nestkeep/app_state.dart';
+import 'package:nestkeep/db.dart';
 import 'package:nestkeep/models.dart';
 import 'package:nestkeep/screens/profile.dart';
 import 'package:nestkeep/screens/settings.dart';
 import 'package:nestkeep/theme.dart';
 import 'package:nestkeep/widgets/avatar_menu.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 TaskInstance _task({
   required TaskStatus status,
@@ -31,6 +35,7 @@ Future<void> _pumpProfile(
   AppState state, {
   VoidCallback? onOpenSettings,
   VoidCallback? onOpenPaywall,
+  VoidCallback? onAddHome,
 }) async {
   // A tall viewport: Profile grew in build 20 (Appearance moved in),
   // and rows left at the very edge of the default surface take taps
@@ -47,7 +52,7 @@ Future<void> _pumpProfile(
           themeMode: ThemeMode.system,
           onThemeChanged: (_) {},
           onOpenPaywall: onOpenPaywall ?? () {},
-          onAddHome: () {},
+          onAddHome: onAddHome ?? () {},
           onOpenSettings: onOpenSettings ?? () {},
         ),
       ),
@@ -150,8 +155,8 @@ void main() {
     expect(find.text('Delete account'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('Version'), 120);
     expect(find.text('Version'), findsOneWidget);
-    expect(find.text('1.5.2'), findsOneWidget);
-    expect(find.textContaining('NestKeep 1.5.2'), findsOneWidget);
+    expect(find.text('1.5.3'), findsOneWidget);
+    expect(find.textContaining('NestKeep 1.5.3'), findsOneWidget);
   });
 
   testWidgets('Profile carries the appearance section', (tester) async {
@@ -327,5 +332,164 @@ void main() {
     expect(find.byIcon(Icons.lock), findsNothing);
     // Four colour captions plus the plan card's PRO chip.
     expect(find.text('PRO'), findsNWidgets(5));
+  });
+
+  group('home switcher dropdown (build 21)', () {
+    setUpAll(() async {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      setupFirebaseCoreMocks();
+      await Firebase.initializeApp();
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+    });
+
+    Future<AppState> seededHomes(List<String> names) async {
+      await AppDb.wipeAll();
+      for (final name in names) {
+        await AppDb.insertHome(Home(
+          name: name,
+          addressLine: '',
+          type: 'house',
+          yearBuilt: 2000,
+          updatedAt: DateTime(2026, 1, 1),
+        ));
+      }
+      final state = AppState();
+      await state.init();
+      return state;
+    }
+
+    /// Taps whose handlers do real database work run in real time,
+    /// like the appliance flow tests.
+    Future<void> tapAndSettle(WidgetTester tester, Finder finder) async {
+      await tester.runAsync(() async {
+        await tester.tap(finder);
+        await Future<void>.delayed(const Duration(milliseconds: 700));
+      });
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('shows the current home; the menu lists every home '
+        'with the current one ticked, plus Add home', (tester) async {
+      final state = await tester.runAsync(
+            () => seededHomes(['Alpha house', 'Beta house']),
+          ) ??
+          (throw StateError('seed failed'));
+      await _pumpProfile(tester, state);
+      // The switcher at the top shows the current home, and the old
+      // Your homes card list is gone.
+      expect(find.text('Alpha house'), findsOneWidget);
+      expect(find.text('Your homes'), findsNothing);
+
+      await tester.tap(find.text('Alpha house'));
+      await tester.pumpAndSettle();
+      expect(find.text('Beta house'), findsOneWidget);
+      expect(find.text('Add home'), findsOneWidget);
+      // The current home's menu row carries the tick; the other
+      // home's does not. (The menu's Alpha row is the later of the
+      // two Alpha texts: the switcher keeps its own underneath.)
+      final alphaRow = find.ancestor(
+        of: find.text('Alpha house').last,
+        matching: find.byType(Row),
+      );
+      expect(
+        find.descendant(of: alphaRow, matching: find.byIcon(Icons.check)),
+        findsOneWidget,
+      );
+      final betaRow = find.ancestor(
+        of: find.text('Beta house'),
+        matching: find.byType(Row),
+      );
+      expect(
+        find.descendant(of: betaRow, matching: find.byIcon(Icons.check)),
+        findsNothing,
+      );
+    });
+
+    testWidgets('picking another home switches the current home',
+        (tester) async {
+      final state = await tester.runAsync(
+            () => seededHomes(['Alpha house', 'Beta house']),
+          ) ??
+          (throw StateError('seed failed'));
+      await _pumpProfile(tester, state);
+      await tester.tap(find.text('Alpha house'));
+      await tester.pumpAndSettle();
+      await tapAndSettle(tester, find.text('Beta house'));
+      expect(state.activeHome?.name, 'Beta house');
+      // Rebuilt (the app root rebuilds on state changes), the
+      // switcher now fronts the new home.
+      await _pumpProfile(tester, state);
+      expect(find.text('Beta house'), findsOneWidget);
+    });
+
+    testWidgets('a free user with a home already: Add home opens the '
+        'paywall, not the wizard', (tester) async {
+      final state = await tester.runAsync(
+            () => seededHomes(['Alpha house']),
+          ) ??
+          (throw StateError('seed failed'));
+      var paywallOpened = false;
+      var addHomeOpened = false;
+      await _pumpProfile(
+        tester,
+        state,
+        onOpenPaywall: () => paywallOpened = true,
+        onAddHome: () => addHomeOpened = true,
+      );
+      await tester.tap(find.text('Alpha house'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Add home'));
+      await tester.pumpAndSettle();
+      expect(paywallOpened, isTrue);
+      expect(addHomeOpened, isFalse);
+    });
+
+    testWidgets('a Pro user below the cap: Add home opens the wizard',
+        (tester) async {
+      final state = await tester.runAsync(
+            () => seededHomes(['Alpha house', 'Beta house']),
+          ) ??
+          (throw StateError('seed failed'));
+      state.entitlement =
+          const Entitlement(isPro: true, source: EntitlementSource.yearly);
+      var paywallOpened = false;
+      var addHomeOpened = false;
+      await _pumpProfile(
+        tester,
+        state,
+        onOpenPaywall: () => paywallOpened = true,
+        onAddHome: () => addHomeOpened = true,
+      );
+      await tester.tap(find.text('Alpha house'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Add home'));
+      await tester.pumpAndSettle();
+      expect(addHomeOpened, isTrue);
+      expect(paywallOpened, isFalse);
+    });
+
+    testWidgets('a Pro user at three homes: Add home shows the limit '
+        'message instead', (tester) async {
+      final state = await tester.runAsync(
+            () => seededHomes(['Alpha house', 'Beta house', 'Gamma house']),
+          ) ??
+          (throw StateError('seed failed'));
+      state.entitlement =
+          const Entitlement(isPro: true, source: EntitlementSource.yearly);
+      var addHomeOpened = false;
+      await _pumpProfile(
+        tester,
+        state,
+        onAddHome: () => addHomeOpened = true,
+      );
+      await tester.tap(find.text('Alpha house'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Add home'));
+      await tester.pumpAndSettle();
+      expect(find.text('3 homes is the limit'), findsOneWidget);
+      expect(addHomeOpened, isFalse);
+      await tester.pump(const Duration(seconds: 4));
+    });
   });
 }

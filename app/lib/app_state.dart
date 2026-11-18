@@ -447,7 +447,9 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  /// Save a picked photo as a home's photo (build 20, free): downscaled
+  /// Save a picked photo as a home's photo (build 20; adding one is
+  /// Pro since build 21 — the gate lives in the photo flows, not
+  /// here, and a photo already set stays if Pro lapses): downscaled
   /// into the documents folder as `home_photo_<homeId>.jpg`. Local
   /// only, never synced — only the home's facts sync, never this file.
   Future<bool> setHomePhoto(int homeId, String pickedPath) async {

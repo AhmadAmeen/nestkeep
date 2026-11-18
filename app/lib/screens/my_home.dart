@@ -59,10 +59,11 @@ class MyHomeScreen extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        // The home's own photo (build 20, free, local only) rides on
+        // The home's own photo (build 20, local only) rides on
         // top of the summary card as a banner when one is set; with
         // no photo the card is exactly as it was. Tapping the banner
-        // replaces or removes the photo.
+        // replaces or removes the photo; replacing is Pro since
+        // build 21, a photo already set stays for everyone.
         Builder(builder: (context) {
           final photoPath = state.homePhotoPath(home.id!);
           final summaryRow = Row(
@@ -101,7 +102,8 @@ class MyHomeScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 GestureDetector(
-                  onTap: () => showHomePhotoActions(context, state, home.id!),
+                  onTap: () => showHomePhotoActions(context, state, home.id!,
+                      onOpenPaywall: onOpenPaywall),
                   child: ClipRRect(
                     borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(20)),
@@ -249,7 +251,8 @@ class MyHomeScreen extends StatelessWidget {
         sublabel:
             '${homeTypeLabel(state.activeHome!.type)} · built ${state.activeHome!.yearBuilt}',
         onTap: () => Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => HomeDetailsScreen(state: state),
+          builder: (_) =>
+              HomeDetailsScreen(state: state, onOpenPaywall: onOpenPaywall),
         )),
       ),
     ];

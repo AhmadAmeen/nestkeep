@@ -6,6 +6,16 @@ import 'package:image/image.dart' as img;
 /// the custom avatar and the home photo. Both are written into the app
 /// documents folder and stay LOCAL ONLY, never synced — the same rule
 /// as receipt photos and home documents.
+///
+/// Orientation (build 21): both writers bake the picked photo's EXIF
+/// orientation into the pixels right after decoding, so the JPEG on
+/// disk is physically upright with the flag cleared and shows the
+/// right way up in every viewer. This cannot be left to the decoders:
+/// the JPEG decoder happens to apply orientation while decoding, but
+/// the WebP decoder hands the flag back unapplied (and the square
+/// crop never applied it either), so a sideways-stored photo used to
+/// survive processing sideways. Baking here, at the one shared point,
+/// covers every format the picker can return.
 
 /// The custom avatar's fixed file name in the documents folder.
 const customAvatarFileName = 'custom_avatar.jpg';
@@ -26,7 +36,8 @@ Future<bool> writeSquareAvatar(
     final bytes = await File(sourcePath).readAsBytes();
     final decoded = img.decodeImage(bytes);
     if (decoded == null) return false;
-    final cropped = img.copyResizeCropSquare(decoded, size: size);
+    final cropped =
+        img.copyResizeCropSquare(img.bakeOrientation(decoded), size: size);
     await File(destPath).writeAsBytes(img.encodeJpg(cropped, quality: 85));
     return true;
   } catch (_) {
@@ -47,11 +58,11 @@ Future<bool> writeHomePhoto(
     final bytes = await File(sourcePath).readAsBytes();
     final decoded = img.decodeImage(bytes);
     if (decoded == null) return false;
-    var out = decoded;
-    if (decoded.width > maxDimension || decoded.height > maxDimension) {
-      out = decoded.width >= decoded.height
-          ? img.copyResize(decoded, width: maxDimension)
-          : img.copyResize(decoded, height: maxDimension);
+    var out = img.bakeOrientation(decoded);
+    if (out.width > maxDimension || out.height > maxDimension) {
+      out = out.width >= out.height
+          ? img.copyResize(out, width: maxDimension)
+          : img.copyResize(out, height: maxDimension);
     }
     await File(destPath).writeAsBytes(img.encodeJpg(out, quality: 80));
     return true;

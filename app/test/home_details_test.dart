@@ -90,7 +90,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: nkLightTheme(),
-        home: HomeDetailsScreen(state: state),
+        home: HomeDetailsScreen(state: state, onOpenPaywall: () {}),
       ),
     );
     await tester.pumpAndSettle();
@@ -101,12 +101,64 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: nkLightTheme(),
-        home: HomeDetailsScreen(state: state),
+        home: HomeDetailsScreen(state: state, onOpenPaywall: () {}),
       ),
     );
     await tester.pumpAndSettle();
     expect(find.text('Add home photo'), findsNothing);
     expect(find.byType(Image), findsOneWidget);
+  });
+
+  testWidgets('build 21: a free user tapping Add home photo gets the '
+      'paywall, never the picker', (tester) async {
+    final (state, _) =
+        await tester.runAsync(seededState) ?? (throw StateError('seed failed'));
+    var paywallOpened = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: nkLightTheme(),
+        home: HomeDetailsScreen(
+          state: state,
+          onOpenPaywall: () => paywallOpened = true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(state.isPro, isFalse);
+    await tester.tap(find.text('Add home photo'));
+    await tester.pumpAndSettle();
+    expect(paywallOpened, isTrue);
+    // The camera-or-gallery sheet never opened.
+    expect(find.text('Take a photo'), findsNothing);
+    expect(find.text('Pick from gallery'), findsNothing);
+  });
+
+  testWidgets('build 21: a Pro user tapping Add home photo reaches the '
+      'picker sheet', (tester) async {
+    final (state, _) =
+        await tester.runAsync(seededState) ?? (throw StateError('seed failed'));
+    state.entitlement =
+        const Entitlement(isPro: true, source: EntitlementSource.yearly);
+    var paywallOpened = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: nkLightTheme(),
+        home: HomeDetailsScreen(
+          state: state,
+          onOpenPaywall: () => paywallOpened = true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add home photo'));
+    await tester.pumpAndSettle();
+    expect(paywallOpened, isFalse);
+    expect(find.text('Take a photo'), findsOneWidget);
+    expect(find.text('Pick from gallery'), findsOneWidget);
+    // Dismiss the sheet again.
+    await tester.tapAt(const Offset(20, 20));
+    await tester.pumpAndSettle();
+    expect(find.text('Take a photo'), findsNothing);
   });
 
   testWidgets('editing saves the name and a profile answer, persists '
@@ -121,7 +173,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: nkLightTheme(),
-        home: HomeDetailsScreen(state: state),
+        home: HomeDetailsScreen(state: state, onOpenPaywall: () {}),
       ),
     );
     await tester.pumpAndSettle();

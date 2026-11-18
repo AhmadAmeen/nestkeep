@@ -47,8 +47,13 @@ String _climateLabel(String climate) => switch (climate) {
 /// build-10 selection governs those).
 class HomeDetailsScreen extends StatefulWidget {
   final AppState state;
+  final VoidCallback onOpenPaywall;
 
-  const HomeDetailsScreen({super.key, required this.state});
+  const HomeDetailsScreen({
+    super.key,
+    required this.state,
+    required this.onOpenPaywall,
+  });
 
   @override
   State<HomeDetailsScreen> createState() => _HomeDetailsScreenState();
@@ -167,13 +172,16 @@ class _HomeDetailsScreenState extends State<HomeDetailsScreen> {
 
   /// The home's photo at the top (build 20): the picture itself when
   /// one is set (tap to replace or remove), otherwise an add row.
-  /// Free for everyone; the file lives on this phone only.
+  /// Adding or replacing is Pro since build 21 (a free tap opens the
+  /// paywall); a photo already set stays visible and removable for
+  /// everyone. The file lives on this phone only.
   Widget _photoSection(BuildContext context, Home home) {
     final path = state.homePhotoPath(home.id!);
     final file = path == null ? null : File(path);
     if (file != null && file.existsSync()) {
       return GestureDetector(
-        onTap: () => showHomePhotoActions(context, state, home.id!),
+        onTap: () => showHomePhotoActions(context, state, home.id!,
+            onOpenPaywall: widget.onOpenPaywall),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
           child: AspectRatio(
@@ -184,7 +192,8 @@ class _HomeDetailsScreenState extends State<HomeDetailsScreen> {
       );
     }
     return NkCard(
-      onTap: () => pickHomePhoto(context, state, home.id!, replacing: false),
+      onTap: () => pickHomePhoto(context, state, home.id!,
+          replacing: false, onOpenPaywall: widget.onOpenPaywall),
       child: Row(
         children: [
           Container(

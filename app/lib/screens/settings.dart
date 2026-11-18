@@ -108,7 +108,7 @@ class SettingsScreen extends StatelessWidget {
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Version'),
                 trailing: Text(
-                  '1.5.2',
+                  '1.5.3',
                   style: TextStyle(color: context.muted),
                 ),
               ),
@@ -117,7 +117,7 @@ class SettingsScreen extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'NestKeep 1.5.2 · Made to be kept: no ads, no selling data, your home data lives on your phone.',
+          'NestKeep 1.5.3 · Made to be kept: no ads, no selling data, your home data lives on your phone.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 12.5, color: context.muted),
         ),
