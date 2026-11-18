@@ -551,15 +551,93 @@ String money(double v) {
 /// the same way ("Entity added / updated / deleted"), shows it on
 /// the screen the user lands on after navigation completes, and keeps
 /// it brief. Any ticker already up is replaced, never stacked.
+///
+/// Build 23: tickers are routed through [TickerCenter] so a badge
+/// celebration can never eat one. The celebration is a modal dialog
+/// over the screen; a SnackBar shown underneath it is hidden behind
+/// its backdrop and its 3-second timer expires while the user is
+/// still reading the celebration — the confirmation simply never
+/// gets seen. While the Shell holds the center (a celebration is
+/// showing or queued), tickers wait in line and are shown, in order,
+/// the moment the last celebration is dismissed.
 void showTicker(BuildContext context, String message) {
-  final messenger = ScaffoldMessenger.of(context);
-  messenger.hideCurrentSnackBar();
-  messenger.showSnackBar(
-    SnackBar(
-      content: Text(message),
-      duration: const Duration(seconds: 3),
-    ),
-  );
+  TickerCenter.show(ScaffoldMessenger.of(context), message);
+}
+
+/// The ticker queue behind badge celebrations (build 23). The gate
+/// is read LIVE at request time — the Shell registers a callback
+/// that answers "is a celebration showing or waiting right now"
+/// straight from the app state. A cached flag is not enough: a
+/// badge earned by a flow's own reload lands in the pending list
+/// during that reload's notify, and a ticker requested moments
+/// later in the same flow must already see the gate closed. When
+/// the gate is closed the ticker queues; the Shell calls [release]
+/// on its celebration nudges, and once the last celebration is gone
+/// the queue flushes in request order. With no Shell (screens
+/// pumped standalone, most test harnesses) there is no gate, and
+/// tickers show immediately, exactly as before.
+class TickerCenter {
+  TickerCenter._();
+
+  static bool Function()? _gateClosed;
+  static final List<(ScaffoldMessengerState, String)> _queue = [];
+
+  /// The Shell's live celebration check: true while a celebration
+  /// is on screen or waiting to be presented.
+  static set gateClosed(bool Function()? gate) => _gateClosed = gate;
+
+  /// True while the gate is closed (celebrations in the way).
+  static bool get isHeld => _gateClosed?.call() ?? false;
+
+  /// How many tickers are waiting for the celebrations to finish.
+  static int get queuedCount => _queue.length;
+
+  static void show(ScaffoldMessengerState messenger, String message) {
+    if (isHeld) {
+      _queue.add((messenger, message));
+      return;
+    }
+    _showNow(messenger, message);
+  }
+
+  static void _showNow(ScaffoldMessengerState messenger, String message) {
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  /// Flush whatever queued, if the gate has opened. Safe to call on
+  /// every celebration nudge: with the gate still closed, or an
+  /// empty queue, it does nothing.
+  static void release() {
+    if (isHeld || _queue.isEmpty) return;
+    final waiting = List.of(_queue);
+    _queue.clear();
+    // ScaffoldMessenger plays queued SnackBars one at a time, each
+    // for its full duration, so flushing is just showing them all:
+    // every confirmation gets its moment, in the order it happened.
+    for (final (messenger, message) in waiting) {
+      if (messenger.mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(message),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  /// Test-only: drop the gate and anything queued, so one test's
+  /// celebrations cannot leak into the next test's tickers.
+  static void resetForTest() {
+    _gateClosed = null;
+    _queue.clear();
+  }
 }
 
 /// Tips rotate deterministically by ISO week so every user sees the same

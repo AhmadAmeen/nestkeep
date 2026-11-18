@@ -1,26 +1,24 @@
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
-import '../models.dart';
 import '../sync.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import '../widgets/avatar_menu.dart';
 import '../widgets/avatar_picker.dart';
-import 'home_details.dart' show homeTypeLabel;
 
-/// Profile: who you are in the app — which home you are looking at
-/// (the compact switcher at the top, build 21), the optional account,
-/// your avatar, how the app looks (build 20 moved Appearance here
-/// from Settings), your plan and the badges you have earned.
-/// Settings keeps data and about. Guest mode is the default and the
-/// full app.
+/// Profile: who you are in the app — the optional account, your
+/// avatar, how the app looks (build 20 moved Appearance here from
+/// Settings), your plan and the badges you have earned. Home
+/// switching and home management moved to the My Home header
+/// dropdown in build 23 (the build-21 switcher that lived at the
+/// top of this page is gone). Settings keeps data and about. Guest
+/// mode is the default and the full app.
 class ProfileScreen extends StatelessWidget {
   final AppState state;
   final ThemeMode themeMode;
   final void Function(ThemeMode) onThemeChanged;
   final VoidCallback onOpenPaywall;
-  final VoidCallback onAddHome;
   final VoidCallback onOpenSettings;
   final VoidCallback? onAvatarTap;
 
@@ -30,7 +28,6 @@ class ProfileScreen extends StatelessWidget {
     required this.themeMode,
     required this.onThemeChanged,
     required this.onOpenPaywall,
-    required this.onAddHome,
     required this.onOpenSettings,
     this.onAvatarTap,
   });
@@ -51,12 +48,6 @@ class ProfileScreen extends StatelessWidget {
             ),
             AvatarButton(state: state, onTap: onAvatarTap),
           ],
-        ),
-        const SizedBox(height: 10),
-        _HomeSwitcher(
-          state: state,
-          onOpenPaywall: onOpenPaywall,
-          onAddHome: onAddHome,
         ),
         const SizedBox(height: 14),
         NkCard(
@@ -547,123 +538,6 @@ class _ColourCard extends StatelessWidget {
             style: TextStyle(fontSize: 12.5, color: context.muted),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// The home switcher at the top of Profile (build 21): one small,
-/// quiet dropdown showing the current home. Its menu lists every
-/// home (the current one ticked) and, under a divider, Add home.
-/// Picking a home switches to it in place. The caps are the locked
-/// ones: Free is 1 home, so a free user with a home already goes to
-/// the paywall; Pro allows up to 3, and at 3 the tap just says so.
-/// It replaced the old Your homes card list, which ate the page.
-class _HomeSwitcher extends StatelessWidget {
-  final AppState state;
-  final VoidCallback onOpenPaywall;
-  final VoidCallback onAddHome;
-
-  const _HomeSwitcher({
-    required this.state,
-    required this.onOpenPaywall,
-    required this.onAddHome,
-  });
-
-  /// The menu's Add home entry, told apart from a picked [Home].
-  static const _addHome = Object();
-
-  void _onSelected(BuildContext context, Object value) {
-    if (value == _addHome) {
-      if (!state.isPro && state.homes.length >= 1) {
-        onOpenPaywall();
-      } else if (state.homes.length >= 3) {
-        showTicker(context, '3 homes is the limit');
-      } else {
-        onAddHome();
-      }
-      return;
-    }
-    final home = value as Home;
-    if (home.id != state.activeHome?.id) {
-      state.setActiveHome(home);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final active = state.activeHome;
-    return PopupMenuButton<Object>(
-      tooltip: 'Switch home',
-      padding: EdgeInsets.zero,
-      onSelected: (value) => _onSelected(context, value),
-      itemBuilder: (context) => [
-        for (final h in state.homes)
-          PopupMenuItem<Object>(
-            value: h,
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 26,
-                  child: h.id == active?.id
-                      ? Icon(Icons.check, size: 18, color: context.primary)
-                      : null,
-                ),
-                Expanded(
-                  child: Text(
-                    h.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 14.5),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  homeTypeLabel(h.type),
-                  style: TextStyle(fontSize: 12.5, color: context.muted),
-                ),
-              ],
-            ),
-          ),
-        const PopupMenuDivider(),
-        PopupMenuItem<Object>(
-          value: _addHome,
-          child: Row(
-            children: [
-              SizedBox(
-                width: 26,
-                child: Icon(Icons.add, size: 18, color: context.primary),
-              ),
-              const Text('Add home', style: TextStyle(fontSize: 14.5)),
-            ],
-          ),
-        ),
-      ],
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-        decoration: BoxDecoration(
-          border: Border.all(color: context.line),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.home_outlined, size: 18, color: context.primary),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                active?.name ?? 'Your home',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w600,
-                  color: context.navyText,
-                ),
-              ),
-            ),
-            Icon(Icons.expand_more, size: 20, color: context.muted),
-          ],
-        ),
       ),
     );
   }

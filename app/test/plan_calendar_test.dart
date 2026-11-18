@@ -130,7 +130,7 @@ void main() {
               tasks: [_task(due: today, title: 'Due today job')],
               templateById: const {},
               onOpenTask: (_) {},
-              onDone: (_) {},
+              onDone: (_, _) {},
             ),
           ),
         ),

@@ -8,6 +8,7 @@ import '../plan.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import '../widgets/animated_check.dart';
+import '../widgets/done_dialog.dart';
 
 /// The task guide: why it matters, what it costs either way, the steps and
 /// what you need. No shopping links anywhere, by design.
@@ -34,10 +35,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
 
   Future<void> _markDone(BuildContext context) async {
     if (_completing) return;
-    final result = await showDialog<_DoneResult>(
-      context: context,
-      builder: (_) => const _DoneDialog(),
-    );
+    final result = await showDoneDialog(context);
     // Dismissing the dialog without saving is a cancel: nothing is
     // completed and nothing animates.
     if (result == null || !context.mounted) return;
@@ -326,78 +324,4 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   }
 }
 
-class _DoneResult {
-  final double cost;
-  final String? doneBy;
-  final String? note;
-  const _DoneResult(this.cost, this.doneBy, this.note);
-}
 
-class _DoneDialog extends StatefulWidget {
-  const _DoneDialog();
-
-  @override
-  State<_DoneDialog> createState() => _DoneDialogState();
-}
-
-class _DoneDialogState extends State<_DoneDialog> {
-  final _cost = TextEditingController();
-  final _doneBy = TextEditingController();
-  final _note = TextEditingController();
-
-  _DoneResult _result(double cost) => _DoneResult(
-        cost,
-        _doneBy.text.trim().isEmpty ? null : _doneBy.text.trim(),
-        _note.text.trim().isEmpty ? null : _note.text.trim(),
-      );
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Done. What did it cost?'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _cost,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: 'Cost',
-                prefixText: '\$ ',
-                hintText: '0 if you did it yourself',
-              ),
-              autofocus: true,
-            ),
-            TextField(
-              controller: _doneBy,
-              decoration: const InputDecoration(
-                labelText: 'Done by',
-                hintText: "Me, or the pro's name",
-              ),
-            ),
-            TextField(
-              controller: _note,
-              decoration: const InputDecoration(
-                labelText: 'Note (optional)',
-                hintText: 'Anything worth remembering',
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, _result(0.0)),
-          child: const Text('Nothing'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(
-              context, _result(double.tryParse(_cost.text.trim()) ?? 0.0)),
-          child: const Text('Save'),
-        ),
-      ],
-    );
-  }
-}

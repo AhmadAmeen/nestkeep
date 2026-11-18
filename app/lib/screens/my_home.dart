@@ -3,7 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
+import '../db.dart';
 import '../models.dart';
+import '../sync.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import '../widgets/avatar_menu.dart';
@@ -28,6 +30,11 @@ class MyHomeScreen extends StatelessWidget {
   final VoidCallback onOpenPaywall;
   final VoidCallback? onAvatarTap;
 
+  /// Opens the add-a-home flow (the onboarding wizard in the app).
+  /// Optional so hub tests can pump the screen without it; the menu
+  /// entry simply does nothing then.
+  final VoidCallback? onAddHome;
+
   const MyHomeScreen({
     super.key,
     required this.state,
@@ -35,6 +42,7 @@ class MyHomeScreen extends StatelessWidget {
     required this.onOpenCosts,
     required this.onOpenPaywall,
     this.onAvatarTap,
+    this.onAddHome,
   });
 
   @override
@@ -49,11 +57,11 @@ class MyHomeScreen extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: Text('My home',
-                  style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
-                      color: context.navyText)),
+              child: _HomeTitleMenu(
+                state: state,
+                onOpenPaywall: onOpenPaywall,
+                onAddHome: onAddHome,
+              ),
             ),
             AvatarButton(state: state, onTap: onAvatarTap),
           ],
@@ -278,6 +286,202 @@ class MyHomeScreen extends StatelessWidget {
 
   Widget _divider(BuildContext context) {
     return Container(width: 1, height: 40, color: context.line);
+  }
+}
+
+/// The header title as a home dropdown (build 23): the current
+/// home's name in the title style with a small chevron, tappable.
+/// Its menu lists every home (the current one ticked; tapping
+/// switches), then the home actions: Add home, Edit home (the
+/// current home's details, straight into Edit mode) and Delete
+/// home (confirmed; the cascade delete in AppDb; the app switches
+/// to a remaining home and confirms with a ticker). Home management
+/// lives here now — Profile's build-21 switcher is gone. The caps
+/// are the locked ones: Free is 1 home, so a free user with a home
+/// already goes to the paywall from Add home; Pro allows up to 3,
+/// and at 3 the entry answers "3 homes is the limit". The only home
+/// can never be deleted: "You need at least one home".
+/// The header menu's action entries, told apart from a picked
+/// [Home] (the menu value is either a Home or one of these).
+enum _HomeMenuAction { add, edit, delete }
+
+class _HomeTitleMenu extends StatelessWidget {
+  final AppState state;
+  final VoidCallback onOpenPaywall;
+  final VoidCallback? onAddHome;
+
+  const _HomeTitleMenu({
+    required this.state,
+    required this.onOpenPaywall,
+    required this.onAddHome,
+  });
+
+  void _onSelected(BuildContext context, Object value) {
+    if (value == _HomeMenuAction.add) {
+      if (!state.isPro && state.homes.length >= 1) {
+        onOpenPaywall();
+      } else if (state.homes.length >= 3) {
+        showTicker(context, '3 homes is the limit');
+      } else {
+        onAddHome?.call();
+      }
+      return;
+    }
+    if (value == _HomeMenuAction.edit) {
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => HomeDetailsScreen(
+          state: state,
+          onOpenPaywall: onOpenPaywall,
+          startEditing: true,
+        ),
+      ));
+      return;
+    }
+    if (value == _HomeMenuAction.delete) {
+      final home = state.activeHome;
+      if (home != null) _deleteHomeFlow(context, home);
+      return;
+    }
+    final home = value as Home;
+    if (home.id != state.activeHome?.id) {
+      state.setActiveHome(home);
+    }
+  }
+
+  Future<void> _deleteHomeFlow(BuildContext context, Home home) async {
+    if (state.homes.length <= 1) {
+      showTicker(context, 'You need at least one home');
+      return;
+    }
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete this home?'),
+        content: Text(
+          '${home.name} and everything in it — its plan, appliances, '
+          'costs and documents — will be removed from this phone. '
+          'This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: NkColors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await AppDb.deleteHome(home.id!);
+    await state.removeHomePhoto(home.id!);
+    state.homes = await AppDb.homes();
+    state.profiles.remove(home.id);
+    state.planSelections.remove(home.id);
+    if (state.homes.isEmpty) return;
+    await state.setActiveHome(state.homes.first);
+    SyncService.syncNow();
+    if (context.mounted) showTicker(context, 'Home deleted');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final active = state.activeHome;
+    return PopupMenuButton<Object>(
+      tooltip: 'Switch home',
+      padding: EdgeInsets.zero,
+      onSelected: (value) => _onSelected(context, value),
+      itemBuilder: (context) => [
+        for (final h in state.homes)
+          PopupMenuItem<Object>(
+            value: h,
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 26,
+                  child: h.id == active?.id
+                      ? Icon(Icons.check, size: 18, color: context.primary)
+                      : null,
+                ),
+                Expanded(
+                  child: Text(
+                    h.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 14.5),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  homeTypeLabel(h.type),
+                  style: TextStyle(fontSize: 12.5, color: context.muted),
+                ),
+              ],
+            ),
+          ),
+        const PopupMenuDivider(),
+        PopupMenuItem<Object>(
+          value: _HomeMenuAction.add,
+          child: Row(
+            children: [
+              SizedBox(
+                width: 26,
+                child: Icon(Icons.add, size: 18, color: context.primary),
+              ),
+              const Text('Add home', style: TextStyle(fontSize: 14.5)),
+            ],
+          ),
+        ),
+        PopupMenuItem<Object>(
+          value: _HomeMenuAction.edit,
+          child: Row(
+            children: [
+              SizedBox(
+                width: 26,
+                child: Icon(Icons.edit_outlined,
+                    size: 18, color: context.primary),
+              ),
+              const Text('Edit home', style: TextStyle(fontSize: 14.5)),
+            ],
+          ),
+        ),
+        PopupMenuItem<Object>(
+          value: _HomeMenuAction.delete,
+          child: Row(
+            children: [
+              SizedBox(
+                width: 26,
+                child: Icon(Icons.delete_outline,
+                    size: 18, color: NkColors.red),
+              ),
+              const Text('Delete home', style: TextStyle(fontSize: 14.5)),
+            ],
+          ),
+        ),
+      ],
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: Text(
+              active?.name ?? 'My home',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                color: context.navyText,
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Icon(Icons.expand_more, size: 24, color: context.navyText),
+        ],
+      ),
+    );
   }
 }
 

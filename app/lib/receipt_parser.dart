@@ -13,6 +13,13 @@ class ParsedReceipt {
   final List<ReceiptItem> items;
 
   ParsedReceipt({required this.store, this.date, this.total, required this.items});
+
+  /// True when the read found invoice content: at least one priced
+  /// item or a total. The scan flow's save gate (build 23) keys off
+  /// this — a photo with no prices in it is not an invoice the app
+  /// can file, so nothing from it is saved, image included.
+  bool get hasPrices =>
+      total != null || items.any((i) => i.price != null);
 }
 
 final _moneyRe = RegExp(r'\$?\s*(\d{1,6}[.,]\d{2})\b');

@@ -19,6 +19,7 @@ import 'screens/settings.dart';
 import 'screens/task_detail.dart';
 import 'screens/today.dart';
 import 'theme.dart';
+import 'widgets.dart';
 import 'widgets/avatar_menu.dart';
 import 'widgets/badge_celebration.dart';
 
@@ -248,6 +249,11 @@ class _ShellState extends State<Shell> with RouteAware {
   @override
   void initState() {
     super.initState();
+    // The ticker center's celebration gate reads this Shell's live
+    // state (build 23): tickers requested while a celebration is
+    // showing or pending queue behind it instead of expiring
+    // unseen underneath it.
+    TickerCenter.gateClosed = () => _celebrationInTheWay;
     state.addListener(_maybeCelebrate);
     celebrationObserver.onRouteSettled = _maybeCelebrate;
     // Catch anything earned before the Shell existed (e.g. during
@@ -264,6 +270,7 @@ class _ShellState extends State<Shell> with RouteAware {
 
   @override
   void dispose() {
+    TickerCenter.gateClosed = null;
     appRouteObserver.unsubscribe(this);
     if (celebrationObserver.onRouteSettled == _maybeCelebrate) {
       celebrationObserver.onRouteSettled = null;
@@ -286,7 +293,18 @@ class _ShellState extends State<Shell> with RouteAware {
   /// next pop would close the dialog instead of its route (the
   /// build-20 appliance-save bug). An unsettled offer is not lost:
   /// the next nudge re-offers it.
+  /// Tickers queue behind celebrations (build 23): the ticker
+  /// center's gate reads this live — a celebration showing or
+  /// waiting — so a confirmation requested while one is in the way
+  /// lines up instead of expiring unseen under the celebration's
+  /// backdrop. [TickerCenter.release] is called on every
+  /// celebration nudge; it flushes the waiting tickers, in order,
+  /// once the last celebration is gone.
+  bool get _celebrationInTheWay =>
+      _celebrationShowing || state.pendingCelebrations.isNotEmpty;
+
   void _maybeCelebrate() {
+    TickerCenter.release();
     if (_celebrationShowing || state.pendingCelebrations.isEmpty) return;
     final serial = celebrationObserver.serial;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -318,8 +336,12 @@ class _ShellState extends State<Shell> with RouteAware {
     );
     _celebrationShowing = false;
     // Consuming notifies listeners, which queues the next celebration
-    // if there is one.
+    // if there is one; the release nudge runs off that same notify.
+    // Release once more here for the case where the queue just
+    // emptied, so any tickers that waited behind this celebration
+    // flush now.
     state.consumeCelebration(badge.id);
+    TickerCenter.release();
   }
 
   void _openPaywall() {
@@ -388,7 +410,8 @@ class _ShellState extends State<Shell> with RouteAware {
         state: state,
         onSeeAllPlan: () => setState(() => _tab = 1),
         onOpenTask: _openTask,
-        onQuickDone: (t) => completeTask(state, t),
+        onQuickDone: (t, r) => completeTask(state, t,
+            costPaid: r.cost, doneBy: r.doneBy, doneNote: r.note),
         onAvatarTap: _onAvatarTap,
       ),
       PlanScreen(
@@ -404,6 +427,12 @@ class _ShellState extends State<Shell> with RouteAware {
         onOpenCosts: _openExpenses,
         onOpenPaywall: _openPaywall,
         onAvatarTap: _onAvatarTap,
+        onAddHome: () => Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => OnboardingScreen(
+            state: state,
+            onDone: () => Navigator.of(context).pop(),
+          ),
+        )),
       ),
       ProfileScreen(
         state: state,
@@ -412,12 +441,6 @@ class _ShellState extends State<Shell> with RouteAware {
         onOpenPaywall: _openPaywall,
         onOpenSettings: _openSettings,
         onAvatarTap: _onAvatarTap,
-        onAddHome: () => Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => OnboardingScreen(
-            state: state,
-            onDone: () => Navigator.of(context).pop(),
-          ),
-        )),
       ),
     ];
     return Scaffold(
@@ -429,7 +452,7 @@ class _ShellState extends State<Shell> with RouteAware {
           NavigationDestination(icon: Icon(Icons.today_outlined), selectedIcon: Icon(Icons.today), label: 'Today'),
           NavigationDestination(icon: Icon(Icons.checklist_outlined), selectedIcon: Icon(Icons.checklist), label: 'Plan'),
           NavigationDestination(icon: Icon(Icons.document_scanner_outlined), selectedIcon: Icon(Icons.document_scanner), label: 'Scan'),
-          NavigationDestination(icon: Icon(Icons.house_outlined), selectedIcon: Icon(Icons.house), label: 'My Home'),
+          NavigationDestination(icon: Icon(Icons.house_outlined), selectedIcon: Icon(Icons.house), label: 'My Home(s)'),
           NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
         ],
       ),

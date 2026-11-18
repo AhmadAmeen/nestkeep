@@ -49,10 +49,16 @@ class HomeDetailsScreen extends StatefulWidget {
   final AppState state;
   final VoidCallback onOpenPaywall;
 
+  /// Open straight into Edit mode (build 23: the My Home header
+  /// menu's "Edit home" lands here ready to change the facts,
+  /// instead of on the read-only view).
+  final bool startEditing;
+
   const HomeDetailsScreen({
     super.key,
     required this.state,
     required this.onOpenPaywall,
+    this.startEditing = false,
   });
 
   @override
@@ -61,6 +67,16 @@ class HomeDetailsScreen extends StatefulWidget {
 
 class _HomeDetailsScreenState extends State<HomeDetailsScreen> {
   AppState get state => widget.state;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.startEditing) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _startEdit();
+      });
+    }
+  }
 
   bool _editing = false;
   final TextEditingController _name = TextEditingController();

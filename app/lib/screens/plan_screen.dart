@@ -147,7 +147,8 @@ class _PlanScreenState extends State<PlanScreen> {
             tasks: state.tasks,
             templateById: state.templateById,
             onOpenTask: onOpenTask,
-            onDone: (t) => completeTask(state, t),
+            onDone: (t, r) => completeTask(state, t,
+                costPaid: r.cost, doneBy: r.doneBy, doneNote: r.note),
           ),
         ],
         if (!_calendar) ...[
@@ -162,7 +163,8 @@ class _PlanScreenState extends State<PlanScreen> {
                     ? null
                     : state.templateById[t.templateId]?.minutes,
                 onTap: () => onOpenTask(t),
-                onDone: () => completeTask(state, t)),
+                onDone: (r) => completeTask(state, t,
+                    costPaid: r.cost, doneBy: r.doneBy, doneNote: r.note)),
             const SizedBox(height: 10),
           ],
         ],
@@ -177,7 +179,8 @@ class _PlanScreenState extends State<PlanScreen> {
                     ? null
                     : state.templateById[t.templateId]?.minutes,
                 onTap: () => onOpenTask(t),
-                onDone: () => completeTask(state, t)),
+                onDone: (r) => completeTask(state, t,
+                    costPaid: r.cost, doneBy: r.doneBy, doneNote: r.note)),
             const SizedBox(height: 10),
           ],
         ],
@@ -192,7 +195,8 @@ class _PlanScreenState extends State<PlanScreen> {
                     ? null
                     : state.templateById[t.templateId]?.minutes,
                 onTap: () => onOpenTask(t),
-                onDone: () => completeTask(state, t)),
+                onDone: (r) => completeTask(state, t,
+                    costPaid: r.cost, doneBy: r.doneBy, doneNote: r.note)),
             const SizedBox(height: 10),
           ],
         ],

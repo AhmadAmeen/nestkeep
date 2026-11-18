@@ -55,6 +55,21 @@ class _ScanScreenState extends State<ScanScreen> {
       }
       final parsed = parseReceipt(lines);
       if (!mounted) return;
+      // The invoice gate (build 23): the receipt image — and the
+      // receipt itself — is only saved when the read actually found
+      // an invoice in the photo, meaning prices: at least one priced
+      // item or a total. A photo with no prices in it (a wall, a pet,
+      // a blurry receipt) is not accepted: no review sheet, no
+      // record, and the image is never copied anywhere — the only
+      // copy point is the sheet's save, which is never reached.
+      // Camera and gallery both arrive through this one intake, so
+      // the gate covers both. The user just gets a clear line and
+      // can take or pick another shot.
+      if (!parsed.hasPrices) {
+        setState(() => _error =
+            "Couldn't read an invoice in that photo. Try a clearer, straight-on shot.");
+        return;
+      }
       final sheetResult = await showModalBottomSheet<String>(
         context: context,
         isScrollControlled: true,

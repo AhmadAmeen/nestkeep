@@ -7,6 +7,7 @@ import '../theme.dart';
 import '../widgets.dart';
 import '../widgets/animated_check.dart';
 import '../widgets/avatar_menu.dart';
+import '../widgets/done_dialog.dart';
 import 'history.dart';
 import 'score_detail.dart';
 
@@ -16,7 +17,7 @@ class TodayScreen extends StatelessWidget {
   final AppState state;
   final VoidCallback onSeeAllPlan;
   final void Function(TaskInstance) onOpenTask;
-  final Future<void> Function(TaskInstance) onQuickDone;
+  final Future<void> Function(TaskInstance, DoneResult) onQuickDone;
   final VoidCallback? onAvatarTap;
 
   const TodayScreen({
@@ -362,7 +363,7 @@ class TodayScreen extends StatelessWidget {
             TaskCard(
                 task: t,
                 onTap: () => onOpenTask(t),
-                onDone: () => onQuickDone(t)),
+                onDone: (r) => onQuickDone(t, r)),
             const SizedBox(height: 10),
           ],
         ],
@@ -375,14 +376,18 @@ class TodayScreen extends StatelessWidget {
 /// [minutes] is the library job's typical duration when known; the
 /// Plan passes it so rows can say how long a job takes.
 ///
-/// Tapping the quick-done circle does not complete the task at once:
-/// a tick draws itself in place of the button, the card tints green
-/// and glides away, and only then is [onDone] invoked, so the state
-/// reload finds the row already visually gone instead of snapping.
+/// Tapping the quick-done circle opens the same done dialog as the
+/// task guide (build 23: one completion path everywhere) — the job
+/// is only completed when the user confirms there. On a confirm, a
+/// tick draws itself in place of the button, the card tints green
+/// and glides away, and only then is [onDone] invoked with the
+/// dialog's answers, so the state reload finds the row already
+/// visually gone instead of snapping. Cancelling the dialog leaves
+/// the card exactly as it was.
 class TaskCard extends StatefulWidget {
   final TaskInstance task;
   final VoidCallback onTap;
-  final VoidCallback onDone;
+  final Future<void> Function(DoneResult) onDone;
   final int? minutes;
 
   const TaskCard({
@@ -401,6 +406,8 @@ class _TaskCardState extends State<TaskCard>
     with SingleTickerProviderStateMixin {
   bool _completing = false;
   bool _fired = false;
+  bool _asking = false;
+  DoneResult? _result;
 
   late final AnimationController _collapse = AnimationController(
     vsync: this,
@@ -428,8 +435,16 @@ class _TaskCardState extends State<TaskCard>
     super.dispose();
   }
 
-  void _startComplete() {
-    if (_completing) return;
+  /// The tick asks first (build 23): the done dialog opens, and
+  /// only a Save / Nothing there starts the tick animation and the
+  /// completion. Backing out leaves the job untouched.
+  Future<void> _startComplete() async {
+    if (_completing || _asking) return;
+    _asking = true;
+    final result = await showDoneDialog(context);
+    _asking = false;
+    if (result == null || !mounted) return;
+    _result = result;
     setState(() => _completing = true);
   }
 
@@ -441,7 +456,8 @@ class _TaskCardState extends State<TaskCard>
   void _fire() {
     if (!mounted || _fired) return;
     _fired = true;
-    widget.onDone();
+    final result = _result;
+    if (result != null) widget.onDone(result);
   }
 
   @override
@@ -523,15 +539,17 @@ class _TaskCardState extends State<TaskCard>
   }
 }
 
-/// The Next up card. Mark done plays the same tick in place of the
-/// buttons before the completion is applied; when the following task
-/// takes over, the content cross-fades instead of snapping.
+/// The Next up card. Mark done opens the same done dialog as every
+/// other completion path (build 23); on a confirm the same tick
+/// plays in place of the buttons before the completion is applied.
+/// When the following task takes over, the content cross-fades
+/// instead of snapping.
 class _NextUpCard extends StatefulWidget {
   final TaskInstance task;
   final int? minutes;
   final DateTime now;
   final VoidCallback onTap;
-  final Future<void> Function(TaskInstance) onDone;
+  final Future<void> Function(TaskInstance, DoneResult) onDone;
   final VoidCallback onLater;
 
   const _NextUpCard({
@@ -550,6 +568,8 @@ class _NextUpCard extends StatefulWidget {
 class _NextUpCardState extends State<_NextUpCard> {
   bool _completing = false;
   bool _fired = false;
+  bool _asking = false;
+  DoneResult? _result;
 
   @override
   void didUpdateWidget(_NextUpCard old) {
@@ -560,18 +580,28 @@ class _NextUpCardState extends State<_NextUpCard> {
         old.task.dueDate != widget.task.dueDate) {
       _completing = false;
       _fired = false;
+      _result = null;
     }
   }
 
-  void _startComplete() {
-    if (_completing) return;
+  /// Mark done asks first (build 23), like every quick tick: the
+  /// done dialog opens, and only a confirm starts the animation
+  /// and the completion.
+  Future<void> _startComplete() async {
+    if (_completing || _asking) return;
+    _asking = true;
+    final result = await showDoneDialog(context);
+    _asking = false;
+    if (result == null || !mounted) return;
+    _result = result;
     setState(() => _completing = true);
   }
 
   void _onCheckDrawn() {
     if (!mounted || _fired) return;
     _fired = true;
-    widget.onDone(widget.task);
+    final result = _result;
+    if (result != null) widget.onDone(widget.task, result);
   }
 
   @override

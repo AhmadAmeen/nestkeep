@@ -97,7 +97,7 @@ void main() {
 
     Future<void> tapVersion(WidgetTester tester, int times) async {
       for (var i = 0; i < times; i++) {
-        await tester.tap(find.text('1.5.4'));
+        await tester.tap(find.text('1.5.5'));
         await tester.pump(const Duration(milliseconds: 60));
       }
       await tester.pumpAndSettle();

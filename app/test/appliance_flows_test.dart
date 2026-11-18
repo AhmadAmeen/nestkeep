@@ -16,11 +16,20 @@ import 'package:nestkeep/models.dart';
 import 'package:nestkeep/plan.dart';
 import 'package:nestkeep/screens/appliances.dart';
 import 'package:nestkeep/theme.dart';
+import 'package:nestkeep/widgets.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 /// Build 20 regression tests for the appliance flows, run against a
 /// real (FFI) database: the badge-celebration navigation bug, the
 /// delete-lands-on-detail bug, and the confirmation tickers.
+/// Build 23 added the ticker/celebration sequencing tests: a ticker
+/// requested while a badge celebration is showing or pending must
+/// queue behind it and appear once it is dismissed — before the
+/// fix, the SnackBar fired underneath the modal celebration and
+/// its 3 seconds expired while the user was still reading it, so
+/// the confirmation was never seen (Grand's phone report: deleting
+/// an appliance showed no ticker; adding one that earned a badge
+/// showed the celebration but never the ticker).
 ///
 /// Firebase is mocked at the core level so the app's unawaited
 /// SyncService calls see "not signed in" and return quietly, exactly
@@ -153,15 +162,12 @@ void main() {
     return (state, homeId);
   }
 
-  testWidgets(
-      'adding an appliance that earns a badge still lands back on the '
-      'list, with the celebration over it', (tester) async {
-    bigScreen(tester);
-    final (state, _) = await tester.runAsync(seededState) ?? (throw StateError('seed failed'));
-    // The app root wraps MaterialApp in an AnimatedBuilder on the
-    // state (NestKeepApp): every reload rebuilds the theme, which
-    // is what refreshes the pushed list screens on a real phone.
-    // The harness mirrors that shape.
+  /// The full Shell harness: the app root wraps MaterialApp in an
+  /// AnimatedBuilder on the state (NestKeepApp), which is what
+  /// refreshes the pushed list screens on a real phone, and the
+  /// Shell is where celebrations are presented and tickers queue.
+  Future<void> pumpShell(WidgetTester tester, AppState state) async {
+    TickerCenter.resetForTest();
     await tester.pumpWidget(
       AnimatedBuilder(
         animation: state,
@@ -178,29 +184,48 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+  }
+
+  Future<void> goToAppliances(WidgetTester tester) async {
     await tester.tap(find.byWidgetPredicate(
-        (w) => w is NavigationDestination && w.label == 'My Home'));
+        (w) => w is NavigationDestination && w.label == 'My Home(s)'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Appliances').last);
     await tester.pumpAndSettle();
+  }
+
+  testWidgets(
+      'adding an appliance that earns a badge still lands back on the '
+      'list, with the celebration over it, and the ticker after it',
+      (tester) async {
+    bigScreen(tester);
+    final (state, _) = await tester.runAsync(seededState) ?? (throw StateError('seed failed'));
+    await pumpShell(tester, state);
+    await goToAppliances(tester);
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, 'Fridge');
     await tapAndSettle(tester, find.text('Save appliance'));
 
     // The navigation completed: the form is gone and the list shows
-    // the new appliance. Before the fix, the celebration dialog ate
-    // the form's pop and the user stayed on the form.
+    // the new appliance. Before the build-20 fix, the celebration
+    // dialog ate the form's pop and the user stayed on the form.
     expect(find.text('Save appliance'), findsNothing);
     expect(find.text('Fridge'), findsWidgets);
-    // The ticker confirms the add on the list screen...
-    expect(find.text('Appliance added'), findsOneWidget);
-    // ...and the badge celebration shows over the list.
+    // The badge celebration shows over the list...
     expect(find.text('BADGE EARNED'), findsOneWidget);
+    // ...and the ticker is NOT under it: it queues behind the
+    // celebration (build 23), so it cannot expire unseen while the
+    // user reads. The user takes a few seconds over the
+    // celebration — longer than a ticker's whole life.
+    await tester.pump(const Duration(seconds: 4));
     await tester.tap(find.text('Nice'));
     await tester.pumpAndSettle();
     expect(find.text('BADGE EARNED'), findsNothing);
     expect(find.text('Fridge'), findsWidgets);
+    // Only now does the confirmation appear, with its full run.
+    await pumpUntilFound(tester, find.text('Appliance added'));
+    expect(find.text('Appliance added'), findsOneWidget);
     await tester.pump(const Duration(seconds: 4));
   });
 
@@ -285,6 +310,89 @@ void main() {
     expect(find.text('Edit appliance'), findsOneWidget);
     expect(find.text('New fridge'), findsWidgets);
     expect(find.text('Appliance updated'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 4));
+  });
+
+  // A fresh home scores 100 (no tasks), so the score badges are
+  // earned at seed time too; a real first run seeds every earned
+  // badge silently, which is what this list mirrors.
+  const seedCelebrated = [
+    'first_appliance',
+    'score_80',
+    'score_a',
+    'score_95',
+    'score_100',
+  ];
+
+  testWidgets(
+      'deleting in the full Shell ends on the list with the ticker',
+      (tester) async {
+    bigScreen(tester);
+    final (state, _) = await tester.runAsync(() => seededState(
+          withAppliance: true,
+          celebrated: seedCelebrated,
+        )) ??
+        (throw StateError('seed failed'));
+    await pumpShell(tester, state);
+    await goToAppliances(tester);
+    expect(find.text('Old fridge'), findsOneWidget);
+    await tester.tap(find.text('Old fridge'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit appliance'));
+    await tester.pumpAndSettle();
+    await tapAndSettle(tester, find.byIcon(Icons.delete_outline));
+
+    expect(find.text('Save appliance'), findsNothing);
+    expect(find.text('Edit appliance'), findsNothing);
+    expect(find.text('Old fridge'), findsNothing);
+    expect(find.text('Appliance deleted'), findsOneWidget);
+    expect(state.appliances, isEmpty);
+    await tester.pump(const Duration(seconds: 4));
+  });
+
+  testWidgets(
+      'a celebration landing with the delete: the deleted ticker '
+      'waits and shows after it', (tester) async {
+    bigScreen(tester);
+    final (state, _) = await tester.runAsync(() => seededState(
+          withAppliance: true,
+          celebrated: seedCelebrated,
+        )) ??
+        (throw StateError('seed failed'));
+    await pumpShell(tester, state);
+    // The phone scenario behind Grand's report: a badge celebration
+    // is in flight at the moment the delete lands (earned a moment
+    // before, its presentation deferred until navigation settled).
+    // Simulate it with a one-shot listener: the moment the delete's
+    // reload empties the appliance list, a celebration becomes
+    // pending, exactly as if that reload had earned it.
+    final badge =
+        state.currentBadges.firstWhere((b) => b.id == 'first_appliance');
+    var injected = false;
+    state.addListener(() {
+      if (!injected && state.appliances.isEmpty) {
+        injected = true;
+        state.pendingCelebrations = [badge];
+      }
+    });
+    await goToAppliances(tester);
+    await tester.tap(find.text('Old fridge'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit appliance'));
+    await tester.pumpAndSettle();
+    await tapAndSettle(tester, find.byIcon(Icons.delete_outline));
+
+    expect(find.text('Old fridge'), findsNothing);
+    // The celebration is on screen over the list and the ticker is
+    // queued behind it, not expiring underneath.
+    expect(find.text('BADGE EARNED'), findsOneWidget);
+    expect(TickerCenter.queuedCount, 1);
+    await tester.pump(const Duration(seconds: 4));
+    await tester.tap(find.text('Nice'));
+    await tester.pumpAndSettle();
+    expect(find.text('BADGE EARNED'), findsNothing);
+    await pumpUntilFound(tester, find.text('Appliance deleted'));
+    expect(find.text('Appliance deleted'), findsOneWidget);
     await tester.pump(const Duration(seconds: 4));
   });
 }

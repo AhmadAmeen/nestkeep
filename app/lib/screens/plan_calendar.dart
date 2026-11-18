@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../models.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import '../widgets/done_dialog.dart';
 import '../widgets/month_calendar.dart';
 import 'today.dart';
 
@@ -80,7 +81,7 @@ class PlanCalendarView extends StatefulWidget {
   final List<TaskInstance> tasks;
   final Map<String, TaskTemplate> templateById;
   final void Function(TaskInstance) onOpenTask;
-  final void Function(TaskInstance) onDone;
+  final void Function(TaskInstance, DoneResult) onDone;
 
   const PlanCalendarView({
     super.key,
@@ -177,7 +178,9 @@ class _PlanCalendarViewState extends State<PlanCalendarView> {
                 ? null
                 : widget.templateById[t.templateId]?.minutes,
             onTap: () => widget.onOpenTask(t),
-            onDone: () => widget.onDone(t),
+            onDone: (r) async {
+              widget.onDone(t, r);
+            },
           ),
           const SizedBox(height: 10),
         ],

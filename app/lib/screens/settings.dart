@@ -108,7 +108,7 @@ class SettingsScreen extends StatelessWidget {
               // PRO-TEST-UNLOCK (TEMPORARY, build 22): the version row
               // carries the hidden 7-tap test unlock; swap back to a
               // plain ListTile when removing lib/pro_test_unlock.dart.
-              ProTestVersionTile(state: state, versionLabel: '1.5.4'),
+              ProTestVersionTile(state: state, versionLabel: '1.5.5'),
               // PRO-TEST-UNLOCK: visible state + one-tap off while the
               // test unlock is on.
               if (state.proTestMode) ...[
@@ -120,7 +120,7 @@ class SettingsScreen extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'NestKeep 1.5.4 · Made to be kept: no ads, no selling data, your home data lives on your phone.',
+          'NestKeep 1.5.5 · Made to be kept: no ads, no selling data, your home data lives on your phone.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 12.5, color: context.muted),
         ),
