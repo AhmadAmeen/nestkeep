@@ -155,8 +155,8 @@ void main() {
     expect(find.text('Delete account'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('Version'), 120);
     expect(find.text('Version'), findsOneWidget);
-    expect(find.text('1.5.3'), findsOneWidget);
-    expect(find.textContaining('NestKeep 1.5.3'), findsOneWidget);
+    expect(find.text('1.5.4'), findsOneWidget);
+    expect(find.textContaining('NestKeep 1.5.4'), findsOneWidget);
   });
 
   testWidgets('Profile carries the appearance section', (tester) async {

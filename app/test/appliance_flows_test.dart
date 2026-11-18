@@ -88,6 +88,26 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// Bounded wait for a state that only arrives once real IO has
+  /// finished. The FFI database lives in its own isolate and does not
+  /// run on the fake test clock, so on a loaded CI runner the save
+  /// chain (update, reload's dozen queries, reminders) can outlast
+  /// tapAndSettle's fixed delays; the edit test failed in CI exactly
+  /// that way (the detail screen was back, the refreshed name not yet
+  /// rendered) while passing locally. Poll with short real waits —
+  /// the assertions after this are unchanged, so a genuinely broken
+  /// flow still fails, just after seconds of trying rather than one
+  /// fixed budget.
+  Future<void> pumpUntilFound(WidgetTester tester, Finder finder,
+      {int tries = 40}) async {
+    for (var i = 0; i < tries; i++) {
+      if (finder.evaluate().isNotEmpty) return;
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 250)));
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+  }
+
   Future<(AppState, int)> seededState({
     bool withAppliance = false,
     List<String>? celebrated,
@@ -253,6 +273,13 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, 'New fridge');
     await tapAndSettle(tester, find.text('Save appliance'));
+
+    // The detail screen re-renders from reloaded state and the
+    // ticker follows in the same continuation; on a loaded runner
+    // either can land after tapAndSettle's fixed budget. Wait for
+    // both, bounded, then assert exactly as before.
+    await pumpUntilFound(tester, find.text('New fridge'));
+    await pumpUntilFound(tester, find.text('Appliance updated'));
 
     expect(find.text('Save appliance'), findsNothing);
     expect(find.text('Edit appliance'), findsOneWidget);

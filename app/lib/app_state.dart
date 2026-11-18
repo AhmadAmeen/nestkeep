@@ -13,6 +13,7 @@ import 'health.dart';
 import 'local_images.dart';
 import 'models.dart';
 import 'plan.dart';
+import 'pro_test_unlock.dart';
 import 'theme.dart';
 
 /// App-wide state, deliberately simple: one ChangeNotifier holding the
@@ -45,6 +46,11 @@ class AppState extends ChangeNotifier {
   List<HomeSpace> spaces = [];
   List<HomeDoc> docs = [];
   Entitlement entitlement = Entitlement.free;
+
+  // PRO-TEST-UNLOCK (build 22, TEMPORARY): local test flag that makes
+  // this phone read as Pro. See lib/pro_test_unlock.dart — remove
+  // before the production release build.
+  bool proTestMode = false;
   AppAccent accent = AppAccent.purple;
   AvatarDef currentAvatar = avatarById(null);
 
@@ -89,7 +95,11 @@ class AppState extends ChangeNotifier {
   bool loaded = false;
 
   bool get hasHome => activeHome != null;
-  bool get isPro => entitlement.isPro;
+
+  // PRO-TEST-UNLOCK: the test flag ORs in here — this getter is the
+  // one read point every Pro check in the app goes through (paywall,
+  // caps, locks, badges), so Pro behaviour follows it everywhere.
+  bool get isPro => entitlement.isPro || proTestMode;
 
   Future<void> init() async {
     final raw = await rootBundle.loadString('assets/tasks.json');
@@ -113,6 +123,10 @@ class AppState extends ChangeNotifier {
         entitlement = Entitlement.free;
       }
     }
+
+    // PRO-TEST-UNLOCK: restore the local test flag. It lives in the
+    // settings table, which is never synced and never exported.
+    proTestMode = await AppDb.getSetting(proTestModeSettingKey) == '1';
 
     _refreshAccount();
 
@@ -363,6 +377,18 @@ class AppState extends ChangeNotifier {
     );
     // A purchase or restore can earn the Pro member badge; billing
     // notifies through here rather than reload(), so check here too.
+    await _updateBadgeCelebrations();
+    notifyListeners();
+  }
+
+  /// PRO-TEST-UNLOCK (TEMPORARY, build 22): flip the local test flag.
+  /// Purely local: persisted in the settings table, which is never
+  /// synced and never exported, and the real [entitlement] is left
+  /// untouched — turning this off returns the app to the real billing
+  /// state immediately.
+  Future<void> setProTestMode(bool on) async {
+    proTestMode = on;
+    await AppDb.setSetting(proTestModeSettingKey, on ? '1' : null);
     await _updateBadgeCelebrations();
     notifyListeners();
   }

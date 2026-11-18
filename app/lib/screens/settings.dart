@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../app_state.dart';
 import '../calendar.dart';
 import '../db.dart';
+import '../pro_test_unlock.dart';
 import '../sync.dart';
 import '../theme.dart';
 import '../widgets.dart';
@@ -104,20 +105,22 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 const Divider(height: 1),
               ],
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Version'),
-                trailing: Text(
-                  '1.5.3',
-                  style: TextStyle(color: context.muted),
-                ),
-              ),
+              // PRO-TEST-UNLOCK (TEMPORARY, build 22): the version row
+              // carries the hidden 7-tap test unlock; swap back to a
+              // plain ListTile when removing lib/pro_test_unlock.dart.
+              ProTestVersionTile(state: state, versionLabel: '1.5.4'),
+              // PRO-TEST-UNLOCK: visible state + one-tap off while the
+              // test unlock is on.
+              if (state.proTestMode) ...[
+                const Divider(height: 1),
+                ProTestModeRow(state: state),
+              ],
             ],
           ),
         ),
         const SizedBox(height: 16),
         Text(
-          'NestKeep 1.5.3 · Made to be kept: no ads, no selling data, your home data lives on your phone.',
+          'NestKeep 1.5.4 · Made to be kept: no ads, no selling data, your home data lives on your phone.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 12.5, color: context.muted),
         ),

@@ -163,7 +163,13 @@ class ProfileScreen extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    state.isPro ? 'NestKeep Pro' : 'Free plan',
+                    // PRO-TEST-UNLOCK (TEMPORARY, build 22): the plan
+                    // card names the test unlock for what it is.
+                    state.proTestMode && !state.entitlement.isPro
+                        ? 'NestKeep Pro (test mode)'
+                        : state.isPro
+                            ? 'NestKeep Pro'
+                            : 'Free plan',
                     style: TextStyle(
                         fontSize: 16.5,
                         fontWeight: FontWeight.w700,
